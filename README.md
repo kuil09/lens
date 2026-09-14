@@ -1,46 +1,31 @@
 # Lens
 
-A local macOS translation lens for Korean, Japanese, and English.
+Translate text where you see it on your Mac. Place a resizable lens over a document, website, or app to display translations near the original text, using Vision OCR and Apple Translation on-device.
 
-**Development preview.** End-to-end screen translation has not yet been verified. Translation quality and performance are not validated.
+**Development preview.** Some translation has been observed during use, but formal whole-runtime acceptance is incomplete. Translation quality, end-to-end performance, and notarized distribution are not validated. The planned app version is **0.1.0 (build 1)**; **v0.1.0-beta.1** is an **unreleased tag candidate**.
 
-## Requirements and build
+## Get started
 
-- Apple Silicon, macOS 26.4+, Xcode 26.4+.
-- No third-party packages or model servers.
+Requires Apple Silicon, macOS 26.4 or later, and Xcode 26.4 or later to build from source. Lens has no third-party package dependencies or model server requirement. Follow the [development guide](docs/development.md) for the local build.
 
-```sh
-xcodebuild -project Lens.xcodeproj -scheme Lens -configuration Release -derivedDataPath build build
-open build/Build/Products/Release/Lens.app
-swift test
-```
+1. Open **Lens → 설정…** (Command-comma). Settings have translation (**번역**), appearance (**표시**), and capture (**캡처**) panes.
+2. Allow Lens in **System Settings → Privacy & Security → Screen & System Audio Recording**. Quit and reopen Lens if macOS requests it.
+3. Choose a source and target language, then use **언어 팩 관리…** to prepare the selected pair. Initial language downloads need internet access.
+4. Place the lens over text and select **번역 시작**. Choose an explicit source language when short text is detected incorrectly.
+5. Use **화면 재현** to reproduce the captured background, or **투명** to see the desktop beneath. Enable **클릭과 스크롤 통과** to interact with the app underneath; the menu-bar item remains available to turn it off.
 
-Local builds are ad-hoc signed, not notarized. Rebuilding may require reauthorizing Screen Recording. Permission requests are triggered only by an explicit start/permission action, at most once per launch.
+The interface is currently Korean. Translation choices come from Apple's runtime language availability; source choices also require Vision OCR support. This does **not** mean every macOS interface language is supported. **macOS 언어 사용** selects a supported target from your preferred languages, independently of UI localization.
 
-## Use
+Images and silent videos are saved only when requested, and include the captured background even in transparent mode. Read the [privacy guide](docs/privacy.md) before exporting or sharing.
 
-1. Grant Lens Screen Recording in System Settings → Privacy & Security → Screen & System Audio Recording. Relaunch if requested.
-2. Choose **언어 준비**, then **언어 팩 준비** and accept Apple's download sheet. After all six directions are ready choose **시작**.
-3. Place and resize the lens over text. Source defaults to automatic and target to Korean. Use an explicit source for ambiguous short labels.
-4. **화면 재현** displays the captured scene inside the lens; **투명** shows the actual desktop underneath. **원문 가림** adjusts the text mask, not the translation's opacity.
-   A thin dark-and-light border remains visible in either mode, including while paused or moving. It does not intercept mouse events.
-5. **잠금** passes mouse/scroll events through the lens. The separate controls and menu-bar item remain accessible. **전문 보기** shows untruncated translations.
+## Guides and community
 
-App menu shortcuts (when Lens is active): Command-L show, Command-R start/pause, Command-K lock, Command-comma prepare languages, Command-T full text. These are not global hotkeys.
+- [Using Lens](docs/usage.md): display modes, language packs, shortcuts, image and video export.
+- [Troubleshooting](docs/troubleshooting.md): permissions, missing languages, capture and export problems.
+- [Development](docs/development.md) and [contributing](CONTRIBUTING.md).
+- [Release checklist and manual acceptance](docs/releasing.md).
+- [Changelog](CHANGELOG.md) and [security reporting](SECURITY.md).
 
-## How it works
+Horizontal text is the current focus; vertical writing and game-specific optimization are out of scope. Offline use, language-download recovery, multiple displays, and sustained operation still need formal runtime acceptance.
 
-ScreenCaptureKit captures the lens region while excluding Lens itself. Core Image/MetalKit render the scene independently of Vision OCR. Apple Translation uses installed on-device language models. Recognition is limited to 4 Hz; bounded work queues, version checks and a 1,000-entry memory cache prevent obsolete results and unbounded backlog.
-
-The app stores settings, not screen images or translation history. Language packs are managed by macOS and require an internet connection to download. Explicit benchmark mode writes synthetic test text only.
-
-## Development
-
-`swift test` covers geometry, OCR, text grouping, caching, cancellation, permission handling and border rendering. Open `Tools/fixture.html` for manual multilingual and click-through checks. `TranslationBenchmark` provides 30 reference triples for evaluating all six translation directions; outputs require review rather than exact string comparison.
-
-## Known limitations
-
-- Targets horizontal text in documents, websites and apps; vertical writing and game-specific optimization are out of scope.
-- Changes currently trigger OCR of the entire lens region, not just changed subregions.
-- Language pack download recovery, multi-monitor behavior, offline operation and long-running stability need further runtime validation.
-- Internal render timing measures GPU submission, not actual display latency.
+Source repository: [kuil09/lens](https://github.com/kuil09/lens). Licensed under the [MIT License](LICENSE), copyright **2026 kuil09**. Public distribution still requires the release checklist.
