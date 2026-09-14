@@ -2,11 +2,11 @@
 
 A local macOS translation lens for Korean, Japanese, and English.
 
-**Status: development preview.** The app builds and automated tests pass, but end-to-end screen translation is not yet verified. Language pack downloads and authorization of the current ad-hoc build remain unresolved. See [validation status](VALIDATION.md) before relying on the app.
+**Development preview.** End-to-end screen translation has not yet been verified. Translation quality and performance are not validated.
 
 ## Requirements and build
 
-- Apple Silicon, macOS 26.4+, Xcode 26.4+ (tested toolchain: Xcode 26.6).
+- Apple Silicon, macOS 26.4+, Xcode 26.4+.
 - No third-party packages or model servers.
 
 ```sh
@@ -15,9 +15,7 @@ open build/Build/Products/Release/Lens.app
 swift test
 ```
 
-The app is locally ad-hoc signed, not notarized for distribution. Development rebuilds may require reauthorizing Screen Recording; grant it to the final build and relaunch.
-
-Permission checks at launch and capture restarts are non-prompting. Only the explicit start/permission button (or Start menu action) may request access, at most once per app launch. A permission toggle enabled for an older ad-hoc build does not establish access for a rebuilt executable. Paused or denied capture does not restart just because the lens moves. A stable signing identity is still needed for reliable permission continuity across app updates.
+Local builds are ad-hoc signed, not notarized. Rebuilding may require reauthorizing Screen Recording. Permission requests are triggered only by an explicit start/permission action, at most once per launch.
 
 ## Use
 
@@ -30,16 +28,19 @@ Permission checks at launch and capture restarts are non-prompting. Only the exp
 
 App menu shortcuts (when Lens is active): Command-L show, Command-R start/pause, Command-K lock, Command-comma prepare languages, Command-T full text. These are not global hotkeys.
 
-## Architecture
+## How it works
 
-ScreenCaptureKit excludes the Lens process, crops to the content rectangle, and retains read-only pixel buffers. Core Image/MetalKit present independently of OCR. A small fingerprint detects changes; the newest pending image replaces older work. Vision accurate OCR is serialized at at most 4 Hz with a 120ms stability delay. Paragraphs preserve columns. Apple Translation uses installed low-latency models, bounded batches and a 1,000-entry in-memory LRU. Region/content epochs reject obsolete results.
+ScreenCaptureKit captures the lens region while excluding Lens itself. Core Image/MetalKit render the scene independently of Vision OCR. Apple Translation uses installed on-device language models. Recognition is limited to 4 Hz; bounded work queues, version checks and a 1,000-entry memory cache prevent obsolete results and unbounded backlog.
 
-Language models are OS-managed. No claim is made about fixed model residency or exact model version. Translation text remains on-device; the app does not save screen images, translation history, or send content to a model server. Only settings persist. Explicit benchmark mode, if used, writes only synthetic test text.
+The app stores settings, not screen images or translation history. Language packs are managed by macOS and require an internet connection to download. Explicit benchmark mode writes synthetic test text only.
 
-## Validation
+## Development
 
-`swift test` exercises geometry, language detection/grouping, cache separation/eviction, batch order and cancellation. These tests do not prove real screen capture, translation quality, or GPU presentation timing. `Tools/fixture.html` supplies synthetic multilingual text, long translations and a click counter for visual and click-through checks. `TranslationBenchmark` supplies 30 authored reference triples and all 180 directional translations; outputs require review, not exact string comparison.
+`swift test` covers geometry, OCR, text grouping, caching, cancellation, permission handling and border rendering. Open `Tools/fixture.html` for manual multilingual and click-through checks. `TranslationBenchmark` provides 30 reference triples for evaluating all six translation directions; outputs require review rather than exact string comparison.
 
-The full-text panel shows bounded internal latency samples. “Render submit” is capture-timestamp to GPU command submission, not actual display presentation. Translation latency includes OCR, debounce and earlier blocks. Warm/cold and cached/uncached results must be separated for performance acceptance.
+## Known limitations
 
-See `VALIDATION.md` for the actual run evidence and remaining limits.
+- Targets horizontal text in documents, websites and apps; vertical writing and game-specific optimization are out of scope.
+- Changes currently trigger OCR of the entire lens region, not just changed subregions.
+- Language pack download recovery, multi-monitor behavior, offline operation and long-running stability need further runtime validation.
+- Internal render timing measures GPU submission, not actual display latency.

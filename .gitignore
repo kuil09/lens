@@ -1,6 +1,9 @@
 .build/
-build/
-build-border/
+/build*/
+/DerivedData/
+*.log
+.env
+.env.*
 *.xcuserstate
 xcuserdata/
 .DS_Store
