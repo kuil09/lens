@@ -4,7 +4,7 @@ import Foundation
 enum BenchmarkCommand {
     static func run(arguments: [String]) async {
         let engine = AppleTranslationEngine()
-        for pair in TranslationPair.allDirections {
+        for pair in TranslationBenchmark.directions {
             let state = await engine.availability(source: pair.source, target: pair.target)
             guard state == .installed else {
                 print("BENCHMARK_BLOCKED: \(pair.source.rawValue)->\(pair.target.rawValue) \(state). Prepare packs in the app first.")
@@ -12,7 +12,7 @@ enum BenchmarkCommand {
             }
         }
         var records: [[String: Any]] = []
-        for pair in TranslationPair.allDirections {
+        for pair in TranslationBenchmark.directions {
             for sentence in TranslationBenchmark.corpus {
                 let text = sentence.text(in: pair.source)
                 let input = TranslationInput(id: UUID(), text: text, source: pair.source, target: pair.target)

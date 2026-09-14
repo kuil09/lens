@@ -34,6 +34,10 @@ final class LensCanvas: MTKView, MTKViewDelegate {
         draw()
     }
     func clear() { image = nil; draw() }
+    func snapshotImage() -> CGImage? {
+        guard let image else { return nil }
+        return ciContext.createCGImage(image, from: image.extent)
+    }
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
     func draw(in view: MTKView) {
         guard let drawable = currentDrawable, let command = commandQueue.makeCommandBuffer() else { return }

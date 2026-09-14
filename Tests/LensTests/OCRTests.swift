@@ -12,10 +12,11 @@ private func line(_ text: String, x: CGFloat = 0.1, y: CGFloat = 0.8,
 @Suite struct OCRTests {
 @Test func recognitionLanguageValidation() throws {
     let supported = ["ko-KR", "ja-JP", "en-US", "fr-FR"]
-    #expect(try OCRService.recognitionLanguages(supported: supported, source: nil) == ["ko-KR", "ja-JP", "en-US"])
+    #expect(try OCRService.recognitionLanguages(supported: supported, source: nil) == supported)
     #expect(try OCRService.recognitionLanguages(supported: ["ja-JP"], source: .japanese) == ["ja-JP"])
-    #expect(throws: OCRServiceError.unsupportedRecognitionLanguages(["ko-KR", "ja-JP"])) {
-        try OCRService.recognitionLanguages(supported: ["en-US"], source: nil)
+    #expect(try OCRService.recognitionLanguages(supported: ["en-US"], source: nil) == ["en-US"])
+    #expect(throws: OCRServiceError.unsupportedRecognitionLanguages(["ko"])) {
+        try OCRService.recognitionLanguages(supported: ["en-US"], source: .korean)
     }
 }
 
@@ -23,10 +24,13 @@ private func line(_ text: String, x: CGFloat = 0.1, y: CGFloat = 0.8,
     #expect(OCRService.detectLanguage("설정") == .korean)
     #expect(OCRService.detectLanguage("カメラの設定") == .japanese)
     #expect(OCRService.detectLanguage("This is a complete sentence written in English.") == .english)
-    for text in ["OK", "Oui", "設定", "12345", "", "Привет", "这是一个中文句子", "Bonjour tout le monde, comment allez vous aujourd'hui?"] {
+    for text in ["OK", "Oui", "設定", "12345", "", "Привет"] {
         #expect(OCRService.detectLanguage(text) == nil)
     }
     #expect(OCRService.detectLanguage("OK", source: .japanese) == .japanese)
+    #expect(OCRService.detectLanguage("Bonjour tout le monde, comment allez vous aujourd'hui?")?.languageCode == "fr")
+    #expect(OCRService.detectLanguage("这是一个中文句子")?.languageCode == "zh")
+    #expect(OCRService.detectLanguage("Bonjour tout le monde, comment allez vous aujourd'hui?", languages: [.english, .korean]) == nil)
 }
 
 @Test func neighboringContextIsLocalAndDoesNotGuessLatin() {

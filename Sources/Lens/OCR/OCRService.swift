@@ -9,7 +9,7 @@ enum OCRServiceError: Error, Equatable {
 
 /// Vision work is serialized off the main actor. Bounds retain Vision's lower-left origin.
 actor OCRService {
-    func recognize(_ image: CGImage, source: LensLanguage? = nil) async throws -> [TextBlock] {
+    func recognize(_ image: CGImage, source: LensLanguage? = nil, languages: [LensLanguage]? = nil) async throws -> [TextBlock] {
         try Task.checkCancellation()
         let request = VNRecognizeTextRequest()
         // Fast recognition does not support Korean and Japanese.
@@ -26,18 +26,19 @@ actor OCRService {
             return TextBlock(text: candidate.string, bounds: observation.boundingBox,
                              language: nil, confidence: candidate.confidence)
         }
-        return Self.groupParagraphs(Self.assignLanguages(to: lines, source: source))
+        return Self.groupParagraphs(Self.assignLanguages(to: lines, source: source, languages: languages))
     }
 
     nonisolated static func recognitionLanguages(supported: [String], source: LensLanguage?) throws -> [String] {
-        let wanted = (source.map { [$0] } ?? LensLanguage.allCases).map(\.recognitionIdentifier)
-        let missing = wanted.filter { !supported.contains($0) }
-        guard missing.isEmpty else { throw OCRServiceError.unsupportedRecognitionLanguages(missing) }
-        return wanted
+        guard let source else { return supported }
+        guard let identifier = supported.first(where: { LensLanguage.match($0, in: [source]) != nil }) else {
+            throw OCRServiceError.unsupportedRecognitionLanguages([source.rawValue])
+        }
+        return [identifier]
     }
 
-    /// Never constrain NL hypotheses: doing so would force unsupported languages into ko/ja/en.
-    nonisolated static func detectLanguage(_ text: String, source: LensLanguage? = nil) -> LensLanguage? {
+    /// Detect without constraining NL hypotheses, then match to the runtime translation catalog.
+    nonisolated static func detectLanguage(_ text: String, source: LensLanguage? = nil, languages: [LensLanguage]? = nil) -> LensLanguage? {
         if let source { return source }
         let letters = text.unicodeScalars.filter { CharacterSet.letters.contains($0) }
         guard !letters.isEmpty else { return nil }
@@ -47,19 +48,23 @@ actor OCRService {
         let best = hypotheses.max { $0.value < $1.value }
         let hasHangul = letters.contains { isHangul($0.value) }
         let hasKana = letters.contains { isKana($0.value) }
-        if hasHangul && !hasKana { return .korean }
-        if hasKana && !hasHangul { return .japanese }
-        // Short Latin words and Han-only labels cannot identify a supported language reliably.
-        guard letters.count >= 12, text.split(whereSeparator: \.isWhitespace).count >= 3,
-              let best, best.key == .english, best.value >= 0.85,
-              letters.allSatisfy({ (0x41...0x5A).contains($0.value) || (0x61...0x7A).contains($0.value) }) else { return nil }
-        return .english
+        func accepted(_ identifier: String) -> LensLanguage? {
+            if let languages { return LensLanguage.match(identifier, in: languages) }
+            return LensLanguage(rawValue: identifier)
+        }
+        if hasHangul && !hasKana { return accepted("ko") }
+        if hasKana && !hasHangul { return accepted("ja") }
+        // Single short labels are ambiguous across languages. Scripts without spaces
+        // can still identify longer lines; nearby Han-only labels retain the context rule below.
+        guard letters.count >= 8, let best, best.value >= 0.85 else { return nil }
+        if letters.allSatisfy({ $0.value < 0x0250 }), text.split(whereSeparator: \.isWhitespace).count < 3 { return nil }
+        return accepted(best.key.rawValue)
     }
 
     /// Only ambiguous Han labels inherit Japanese context; digits and short Latin labels stay unknown.
     /// Context must come from directly detected, nearby lines in the same column, without propagation.
-    nonisolated static func assignLanguages(to lines: [TextBlock], source: LensLanguage? = nil) -> [TextBlock] {
-        let detected = lines.map { detectLanguage($0.text, source: source) }
+    nonisolated static func assignLanguages(to lines: [TextBlock], source: LensLanguage? = nil, languages: [LensLanguage]? = nil) -> [TextBlock] {
+        let detected = lines.map { detectLanguage($0.text, source: source, languages: languages) }
         return lines.enumerated().map { index, line in
             var language = detected[index]
             let letters = line.text.unicodeScalars.filter { CharacterSet.letters.contains($0) }

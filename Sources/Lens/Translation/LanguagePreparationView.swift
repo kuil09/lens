@@ -3,112 +3,123 @@ import SwiftUI
 
 @MainActor
 struct LanguagePreparationView: View {
+    @ObservedObject var model: LensModel
+    @ObservedObject var catalog: LanguageCatalog
     let onReady: () -> Void
+    @State private var selectedSource: LensLanguage?
+    @State private var search = ""
     @State private var configuration: TranslationSession.Configuration?
-    @State private var message = "한국어·일본어·영어 언어 팩을 확인해 주세요."
-    @State private var statuses: [TranslationPair: LanguagePairStatus] = [:]
+    @State private var message = "번역할 원문 언어를 선택하세요."
     @State private var busy = false
-    @State private var ready = false
     @State private var generation = UUID()
     @State private var active = true
-    @State private var attempted: Set<TranslationPair> = []
 
-    init(onReady: @escaping () -> Void) { self.onReady = onReady }
+    private var sources: [LensLanguage] {
+        catalog.sourceLanguages.filter {
+            !$0.isSameLanguage(as: model.target) &&
+                (search.isEmpty || $0.title.localizedCaseInsensitiveContains(search) || $0.rawValue.localizedCaseInsensitiveContains(search))
+        }
+    }
+    private var selectedRoute: TranslationRoute? {
+        selectedSource.flatMap { catalog.route(from: $0, to: model.target) }
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("번역 언어 준비").font(.title2)
-            Text("한국어·일본어·영어 3개 언어 팩을 준비합니다. 다운로드에는 인터넷 연결이 필요합니다.")
-            ForEach(LensLanguage.allCases) { language in
-                HStack {
-                    Text(language.title)
-                    Spacer()
-                    Text(packReady(language) ? "설치됨" : "준비 필요")
-                }
-            }
-            Text(message).accessibilityLabel(message)
-            if busy { ProgressView() }
-            HStack {
-                Button("언어 팩 준비") { start() }.disabled(busy || ready)
-                Button("설치 상태 확인") {
-                    let token = generation
-                    Task { await check(token: token) }
+        VStack(spacing: 0) {
+            Form {
+                Picker("번역 언어", selection: $model.targetPreference) {
+                    Text("macOS 언어 사용").tag(nil as LensLanguage?)
+                    ForEach(catalog.languages) { Text($0.title).tag(Optional($0)) }
                 }.disabled(busy)
-                if busy {
-                    Button("준비 중단") {
-                        generation = UUID()
-                        configuration = nil
-                        busy = false
-                        message = "앱 준비를 중단했습니다. 이미 시작된 시스템 다운로드는 백그라운드에서 계속될 수 있습니다."
-                    }
+                Text("\(model.target.title)로 번역할 때의 설치 상태입니다.").foregroundStyle(.secondary)
+            }.formStyle(.grouped).frame(height: 110)
+            HStack {
+                TextField("원문 언어 검색", text: $search).textFieldStyle(.roundedBorder)
+                if catalog.loading { ProgressView().controlSize(.small) }
+            }.padding(.horizontal, 20).padding(.bottom, 12)
+            List(selection: $selectedSource) {
+                ForEach(sources) { language in
+                    HStack {
+                        Text(language.title)
+                        Spacer()
+                        if let route = catalog.route(from: language, to: model.target) {
+                            Label(statusLabel(route), systemImage: route.status == .installed ? "checkmark.circle" : "arrow.down.circle")
+                                .foregroundStyle(.secondary).font(.callout)
+                        } else { Text("확인 중…").foregroundStyle(.secondary) }
+                    }.tag(language)
                 }
-                if ready { Button("시작", action: onReady) }
+            }.listStyle(.inset).frame(minHeight: 200).disabled(busy)
+            VStack(alignment: .leading, spacing: 8) {
+                if busy { ProgressView().controlSize(.small) }
+                Text(message).font(.callout).fixedSize(horizontal: false, vertical: true)
+                Text("화면 인식이 가능한 원문 언어만 표시합니다. macOS 표시 언어·키보드·음성 다운로드와 번역 모델 설치는 별개입니다.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }.frame(maxWidth: .infinity, alignment: .leading).padding(16)
+            Divider()
+            HStack {
+                Button("다시 확인") { Task { await model.refreshLanguages() } }.disabled(busy || catalog.loading)
+                Spacer()
+                if busy {
+                    Button("준비 중단") { cancelPreparation() }
+                } else {
+                    Button("선택한 언어 준비") { start() }
+                        .disabled(selectedRoute?.status != .supported)
+                }
+                Button("완료", action: onReady).keyboardShortcut(.defaultAction)
+            }.padding(16)
+        }
+        .task {
+            active = true
+            selectedSource = model.source
+            await model.refreshLanguages()
+        }
+        .onChange(of: selectedSource) { _, _ in
+            cancelPreparation()
+            if let route = selectedRoute {
+                message = route.status == .installed ? "선택한 언어는 바로 사용할 수 있습니다." :
+                    (route.status == .supported ? "선택한 언어 쌍을 준비하려면 ‘선택한 언어 준비’를 누르세요." : "이 언어 쌍은 현재 macOS에서 지원하지 않습니다.")
             }
         }
-        .padding(24)
-        .onAppear { active = true }
-        .task { await check(token: generation) }
-        .onDisappear { active = false; generation = UUID(); configuration = nil; busy = false }
+        .onChange(of: model.targetPreference) { _, _ in cancelPreparation() }
+        .onDisappear { active = false; cancelPreparation() }
         .translationTask(configuration) { session in
-            // This session belongs only to this SwiftUI task; never retain it.
             let token = generation
             do {
                 try await session.prepareTranslation()
                 try Task.checkCancellation()
                 guard active, token == generation else { return }
-                await check(token: token)
+                await model.refreshLanguages()
                 guard active, token == generation, !Task.isCancelled else { return }
-                if ready { configuration = nil; busy = false }
-                else if let pair = TranslationPair.allDirections.first(where: {
-                    statuses[$0] == .supported && !attempted.contains($0)
-                }) {
-                    attempted.insert(pair)
-                    configuration = .init(source: pair.source.locale, target: pair.target.locale,
-                                          preferredStrategy: .lowLatency)
-                } else {
-                    busy = false
-                    configuration = nil
-                    message = "모든 번역 방향의 설치를 확인하지 못했습니다. 설치 상태를 다시 확인해 주세요."
-                }
+                busy = false; configuration = nil
+                message = selectedRoute?.status == .installed ? "준비되었습니다. 설정에서 이 원문 언어를 선택하거나 자동 감지를 사용하세요." :
+                    "아직 준비가 끝나지 않았습니다. 잠시 후 다시 확인하세요."
             } catch {
                 guard active, token == generation else { return }
-                busy = false
-                configuration = nil
-                if error is CancellationError || TranslationError.alreadyCancelled ~= error || Task.isCancelled {
-                    message = "다운로드가 취소되었습니다. 다시 준비할 수 있습니다."
-                } else {
-                    message = "언어 팩 준비에 실패했습니다: \(error.localizedDescription)"
-                }
+                busy = false; configuration = nil
+                message = error is CancellationError || TranslationError.alreadyCancelled ~= error
+                    ? "다운로드가 취소되었습니다. 다시 준비할 수 있습니다."
+                    : "언어 준비에 실패했습니다: \(error.localizedDescription)"
             }
         }
     }
 
-    private func packReady(_ language: LensLanguage) -> Bool {
-        TranslationPair.allDirections.filter { $0.source == language || $0.target == language }
-            .allSatisfy { statuses[$0] == .installed }
-    }
-
-    private func start() {
-        generation = UUID()
-        busy = true
-        message = "언어 팩을 준비하고 있습니다. 시스템 다운로드 안내를 확인해 주세요."
-        let pair = TranslationPair.allDirections.first { statuses[$0] != .installed }
-            ?? TranslationPair(source: .korean, target: .japanese)
-        attempted = [pair]
-        configuration = .init(source: pair.source.locale, target: pair.target.locale,
-                              preferredStrategy: .lowLatency)
-    }
-
-    private func check(token: UUID) async {
-        let engine = AppleTranslationEngine()
-        var checked: [TranslationPair: LanguagePairStatus] = [:]
-        for pair in TranslationPair.allDirections {
-            checked[pair] = await engine.availability(source: pair.source, target: pair.target)
-            guard active, token == generation, !Task.isCancelled else { return }
+    private func statusLabel(_ route: TranslationRoute) -> String {
+        switch route.status {
+        case .installed: route.strategy == .lowLatency ? "사용 가능" : "사용 가능 · Apple Intelligence"
+        case .supported: "준비 필요"
+        case .unsupported: "번역 미지원"
         }
-        statuses = checked
-        ready = checked.count == 6 && checked.values.allSatisfy { $0 == .installed }
-        if ready { message = "6개 번역 방향이 모두 준비되었습니다." }
-        else if !busy { message = "아직 준비되지 않은 언어 팩이 있습니다." }
+    }
+    private func start() {
+        guard let source = selectedSource, let route = selectedRoute, route.status == .supported else { return }
+        generation = UUID(); busy = true
+        message = "macOS의 언어 준비 안내를 확인하세요. 진행률은 시스템에서 표시합니다."
+        configuration = .init(source: source.locale, target: model.target.locale,
+                              preferredStrategy: route.strategy.appleStrategy)
+    }
+    private func cancelPreparation() {
+        generation = UUID(); configuration = nil
+        if busy { message = "준비를 중단했습니다. 이미 시작된 시스템 다운로드는 계속될 수 있습니다." }
+        busy = false
     }
 }

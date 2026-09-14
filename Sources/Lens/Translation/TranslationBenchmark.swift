@@ -8,11 +8,13 @@ struct TranslationBenchmarkSentence: Sendable {
     let japanese: String
     let english: String
     func text(in language: LensLanguage) -> String {
-        switch language { case .korean: korean; case .japanese: japanese; case .english: english }
+        switch language { case .korean: korean; case .japanese: japanese; case .english: english; default: "" }
     }
 }
 
 enum TranslationBenchmark {
+    static let languages: [LensLanguage] = [.korean, .japanese, .english]
+    static var directions: [TranslationPair] { TranslationPair.directions(in: languages) }
     static let corpus: [TranslationBenchmarkSentence] = [
         .init(number: 1, category: "numbers", korean: "회의는 14시 30분에 시작합니다.", japanese: "会議は14時30分に始まります。", english: "The meeting starts at 14:30."),
         .init(number: 2, category: "numbers", korean: "파일 12개 중 3개를 선택했습니다.", japanese: "12個のファイルのうち3個を選択しました。", english: "You selected 3 of 12 files."),
@@ -60,7 +62,7 @@ enum TranslationBenchmark {
     @MainActor
     static func run(engine: any TranslationEngine) async throws -> [Result] {
         var results: [Result] = []
-        for pair in TranslationPair.allDirections {
+        for pair in TranslationBenchmark.directions {
             try Task.checkCancellation()
             let inputs = corpus.map {
                 TranslationInput(id: UUID(), text: $0.text(in: pair.source), source: pair.source, target: pair.target)

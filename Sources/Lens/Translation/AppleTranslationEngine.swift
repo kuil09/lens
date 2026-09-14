@@ -3,7 +3,10 @@ import Foundation
 // Session ownership and all client access remain on MainActor.
 @preconcurrency import Translation
 
-enum TranslationCacheStrategy: Hashable { case lowLatency, highFidelity }
+enum TranslationCacheStrategy: Hashable, Sendable {
+    case lowLatency, highFidelity
+    var appleStrategy: TranslationSession.Strategy { self == .lowLatency ? .lowLatency : .highFidelity }
+}
 
 struct TranslationCacheKey: Hashable {
     // UTF-8 preserves exact spelling, including canonically equivalent Unicode.
@@ -51,9 +54,9 @@ struct TranslationMemoryCache {
 struct TranslationPair: Hashable {
     let source: LensLanguage
     let target: LensLanguage
-    static var allDirections: [Self] {
-        LensLanguage.allCases.flatMap { source in
-            LensLanguage.allCases.filter { $0 != source }.map { Self(source: source, target: $0) }
+    static func directions(in languages: [LensLanguage]) -> [Self] {
+        languages.flatMap { source in
+            languages.filter { $0 != source }.map { Self(source: source, target: $0) }
         }
     }
 }
@@ -67,9 +70,9 @@ protocol TranslationBatchSession: AnyObject {
 @MainActor
 private final class InstalledTranslationSession: TranslationBatchSession {
     private let session: TranslationSession
-    init(pair: TranslationPair) {
+    init(pair: TranslationPair, strategy: TranslationCacheStrategy) {
         session = TranslationSession(installedSource: pair.source.locale, target: pair.target.locale,
-                                     preferredStrategy: .lowLatency)
+                                     preferredStrategy: strategy.appleStrategy)
     }
 
     func translate(_ texts: [String]) async throws -> [String] {
@@ -94,34 +97,38 @@ private final class InstalledTranslationSession: TranslationBatchSession {
 
 @MainActor
 final class AppleTranslationEngine: TranslationEngine {
-    enum Failure: Error { case invalidResponse }
+    enum Failure: Error { case invalidResponse, languageNotInstalled }
     typealias SessionFactory = @MainActor (TranslationPair) -> any TranslationBatchSession
-    private let factory: SessionFactory
+    typealias RouteResolver = @MainActor (TranslationPair) async -> TranslationRoute
+    private let factory: @MainActor (TranslationPair, TranslationCacheStrategy) -> any TranslationBatchSession
+    private let resolve: RouteResolver
     private let batchSize: Int
-    private var sessions: [TranslationPair: any TranslationBatchSession] = [:]
+    private struct SessionKey: Hashable { let pair: TranslationPair; let strategy: TranslationCacheStrategy }
+    private var sessions: [SessionKey: any TranslationBatchSession] = [:]
     private var cache = TranslationMemoryCache()
     private var epoch: UInt64 = 0
 
     init() {
         batchSize = 8
-        factory = { InstalledTranslationSession(pair: $0) }
+        factory = { InstalledTranslationSession(pair: $0, strategy: $1) }
+        resolve = { await AppleLanguageSupport.route($0) }
     }
 
     // Injection keeps tests independent of installed packs and system downloads.
     init(batchSize: Int = 8, sessionFactory: @escaping SessionFactory) {
         self.batchSize = max(1, batchSize)
-        factory = sessionFactory
+        factory = { pair, _ in sessionFactory(pair) }
+        resolve = { _ in TranslationRoute(status: .installed, strategy: .lowLatency) }
+    }
+
+    init(routeResolver: @escaping RouteResolver,
+         sessionFactory: @escaping @MainActor (TranslationPair, TranslationCacheStrategy) -> any TranslationBatchSession) {
+        batchSize = 8; resolve = routeResolver; factory = sessionFactory
     }
 
     func availability(source: LensLanguage, target: LensLanguage) async -> LanguagePairStatus {
         if source == target { return .installed }
-        let checker = LanguageAvailability(preferredStrategy: .lowLatency)
-        switch await checker.status(from: source.locale, to: target.locale) {
-        case .installed: return .installed
-        case .supported: return .supported
-        case .unsupported: return .unsupported
-        @unknown default: return .unsupported
-        }
+        return await resolve(TranslationPair(source: source, target: target)).status
     }
 
     func cancel() {
@@ -137,8 +144,20 @@ final class AppleTranslationEngine: TranslationEngine {
         var groups: [TranslationPair: [Int]] = [:]
         var pairs: [TranslationPair] = []
         var pending: [(TranslationCacheKey, String)] = []
+        var strategies: [TranslationPair: TranslationCacheStrategy] = [:]
+        for input in inputs where input.source != input.target {
+            let pair = TranslationPair(source: input.source, target: input.target)
+            if strategies[pair] == nil {
+                let route = await resolve(pair)
+                try validate(started)
+                guard route.status == .installed else { throw Failure.languageNotInstalled }
+                strategies[pair] = route.strategy
+            }
+        }
         for (index, input) in inputs.enumerated() {
-            let key = TranslationCacheKey(text: input.text, source: input.source, target: input.target)
+            let pair = TranslationPair(source: input.source, target: input.target)
+            let key = TranslationCacheKey(text: input.text, source: input.source, target: input.target,
+                                          strategy: strategies[pair] ?? .lowLatency)
             if input.source == input.target { results[index] = input.text }
             else if let hit = cache.value(for: key) { results[index] = hit }
             else {
@@ -148,9 +167,11 @@ final class AppleTranslationEngine: TranslationEngine {
             }
         }
         for pair in pairs {
+            let strategy = strategies[pair]!
+            let sessionKey = SessionKey(pair: pair, strategy: strategy)
             let session: any TranslationBatchSession
-            if let existing = sessions[pair] { session = existing }
-            else { session = factory(pair); sessions[pair] = session }
+            if let existing = sessions[sessionKey] { session = existing }
+            else { session = factory(pair, strategy); sessions[sessionKey] = session }
             let indices = groups[pair]!
             for offset in stride(from: 0, to: indices.count, by: batchSize) {
                 try validate(started)
@@ -162,7 +183,7 @@ final class AppleTranslationEngine: TranslationEngine {
                     results[index] = text
                     let input = inputs[index]
                     pending.append((TranslationCacheKey(text: input.text, source: input.source,
-                                                        target: input.target), text))
+                                                        target: input.target, strategy: strategy), text))
                 }
             }
         }

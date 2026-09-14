@@ -1,15 +1,54 @@
 import Foundation
 import CoreGraphics
 
-enum LensLanguage: String, CaseIterable, Codable, Sendable, Identifiable {
-    case korean = "ko", japanese = "ja", english = "en"
+struct LensLanguage: RawRepresentable, Hashable, Codable, Sendable, Identifiable {
+    let rawValue: String
+    init?(rawValue: String) {
+        guard !rawValue.isEmpty, rawValue.count <= 64,
+              rawValue.unicodeScalars.allSatisfy({ CharacterSet.alphanumerics.contains($0) || $0 == "-" || $0 == "_" })
+        else { return nil }
+        let language = Locale.Language(identifier: rawValue.replacingOccurrences(of: "_", with: "-"))
+        guard language.languageCode != nil else { return nil }
+        self.rawValue = language.minimalIdentifier
+    }
+    init(_ language: Locale.Language) { rawValue = language.minimalIdentifier }
+    init(from decoder: any Decoder) throws {
+        let value = try decoder.singleValueContainer().decode(String.self)
+        guard let language = Self(rawValue: value) else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Invalid language identifier"))
+        }
+        self = language
+    }
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+    static let korean = Self(rawValue: "ko")!
+    static let japanese = Self(rawValue: "ja")!
+    static let english = Self(rawValue: "en")!
     var id: String { rawValue }
     var title: String {
-        switch self { case .korean: "한국어"; case .japanese: "日本語"; case .english: "English" }
+        Locale.current.localizedString(forIdentifier: rawValue) ?? rawValue
     }
     var locale: Locale.Language { Locale.Language(identifier: rawValue) }
-    var recognitionIdentifier: String {
-        switch self { case .korean: "ko-KR"; case .japanese: "ja-JP"; case .english: "en-US" }
+    var languageCode: String { locale.languageCode?.identifier ?? rawValue }
+    func isSameLanguage(as other: Self) -> Bool {
+        locale.languageCode == other.locale.languageCode && locale.script == other.locale.script
+    }
+
+    /// Keep script variants distinct (for example, Simplified and Traditional Chinese).
+    static func match(_ identifier: String, in supported: [Self]) -> Self? {
+        guard let wanted = Self(rawValue: identifier) else { return nil }
+        if let exact = supported.first(where: { $0 == wanted }) { return exact }
+        return supported.first {
+            $0.locale.languageCode == wanted.locale.languageCode && $0.locale.script == wanted.locale.script
+        }
+    }
+    static func systemDefault(preferred: [String] = Locale.preferredLanguages, supported: [Self]) -> Self {
+        for identifier in preferred {
+            if let language = match(identifier, in: supported) { return language }
+        }
+        return match("en", in: supported) ?? supported.first ?? .english
     }
 }
 

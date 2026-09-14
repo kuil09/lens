@@ -125,7 +125,7 @@ private func input(_ text: String, source: LensLanguage = .korean,
 @Test @MainActor func translationBenchmarkHas30TriplesAnd180Directions() async throws {
     #expect(TranslationBenchmark.corpus.count == 30)
     #expect(Set(TranslationBenchmark.corpus.map(\.number)).count == 30)
-    #expect(TranslationPair.allDirections.count == 6)
+    #expect(TranslationBenchmark.directions.count == 6)
     let engine = AppleTranslationEngine { _ in FakeTranslationSession() }
     let results = try await TranslationBenchmark.run(engine: engine)
     #expect(results.count == 180)
