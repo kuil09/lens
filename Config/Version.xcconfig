@@ -1,4 +1,4 @@
 // Release metadata has one source of truth. Git tags may include the channel.
 MARKETING_VERSION = 0.1.0
-CURRENT_PROJECT_VERSION = 1
+CURRENT_PROJECT_VERSION = 2
 LENS_RELEASE_CHANNEL = beta.1

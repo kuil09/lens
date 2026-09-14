@@ -1,8 +1,10 @@
 # Lens
 
+<img src="Sources/Lens/Resources/Assets.xcassets/AppIcon.appiconset/icon-128.png" width="96" height="96" alt="Lens: A becomes 가 through a glass lens">
+
 Translate text where you see it on your Mac. Place a resizable lens over a document, website, or app to display translations near the original text, using Vision OCR and Apple Translation on-device.
 
-**Development preview.** Some translation has been observed during use, but formal whole-runtime acceptance is incomplete. Translation quality, end-to-end performance, and notarized distribution are not validated. The planned app version is **0.1.0 (build 1)**; **v0.1.0-beta.1** is an **unreleased tag candidate**.
+**Development preview: [v0.1.0-beta.1](https://github.com/kuil09/lens/releases/tag/v0.1.0-beta.1), app 0.1.0 (build 2).** The Release-configuration ZIP is ad-hoc signed, **not Developer ID signed or notarized**. It is intended for developers and testers; Gatekeeper may prevent opening a downloaded copy. Building from source is an alternative. Do not disable macOS security protections. Formal whole-runtime acceptance, translation quality, and end-to-end performance remain incomplete.
 
 ## Get started
 

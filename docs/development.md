@@ -27,11 +27,11 @@ After building and quitting Lens, create an explicitly nonnotarized development 
 make package ARGS='--development'
 ```
 
-This consumes an existing app; it does not build or sign it. With current version metadata it writes `dist/Lens-0.1.0-beta.1-1-DEVELOPMENT-NOT-NOTARIZED.zip` and a `.zip.sha256` sidecar, refusing to overwrite existing outputs. The ZIP contains `Lens.app` and the repository `LICENSE` at its root. Both packaging modes require the license and validate bundle version/build/channel, arm64 support, minimum macOS version, and the bundled privacy manifest. This is not a public release. See [releasing](releasing.md) for public packaging gates and the separate manual Developer ID workflow.
+This consumes an existing app; it does not build or sign it. With current version metadata it writes `dist/Lens-0.1.0-beta.1-2-DEVELOPMENT-NOT-NOTARIZED.zip` and a `.zip.sha256` sidecar, refusing to overwrite existing outputs. The ZIP contains `Lens.app` and the repository `LICENSE` at its root. Both packaging modes require the license and validate bundle version/build/channel, arm64 support, minimum macOS version, and the bundled privacy manifest. This is a development artifact, not a notarized distribution; publication still requires separate authorization. See [releasing](releasing.md) for public packaging gates and the separate manual Developer ID workflow.
 
 `make clean` irreversibly removes only known generated children of the selected DerivedData, including its built app and SwiftPM scratch output. It preserves `dist`, legacy build directories, and the separate root `.build`. It refuses unsafe/symlinked targets and a running app. Use it only when those generated outputs are disposable; it is not a prerequisite for routine builds.
 
-Version/build/channel come from `Config/Version.xcconfig`. The native About panel reads the built bundle and should display `0.1.0-beta.1 (1)` for this candidate; verify the actual artifact. The public identifier in `Config/Distribution.xcconfig` remains blank pending approval.
+Version/build/channel come from `Config/Version.xcconfig`. The native About panel reads the built bundle and should display `0.1.0-beta.1 (2)` for this candidate; verify the actual artifact. The public identifier in `Config/Distribution.xcconfig` remains blank pending approval.
 
 ## Source map
 

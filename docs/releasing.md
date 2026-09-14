@@ -2,12 +2,14 @@
 
 ## Candidate status
 
-- Planned primary app version: **0.1.0**, build **1**.
-- First tag candidate: **v0.1.0-beta.1 — unreleased**. No release date or published artifact is asserted.
+- Development preview: **0.1.0**, build **2**, tag **v0.1.0-beta.1**.
+- The owner authorized publication of a development prerelease. Its ZIP is explicitly labeled **DEVELOPMENT-NOT-NOTARIZED**; this does not waive the gates for a notarized public distribution below.
 - Some translation has been observed by a user; formal whole-runtime acceptance remains incomplete.
-- The approved [MIT License](../LICENSE), copyright **2026 kuil09**, is present. Inclusion in the final distribution still needs verification.
+- The approved [MIT License](../LICENSE), copyright **2026 kuil09**, is included at the development ZIP root.
 - The current development bundle identifier is `dev.local.lens`; the public identifier is pending an owner decision.
-- Signing/notarization, final icon, translation quality, and end-to-end performance are not validated.
+- The app icon is supplied through the AppIcon asset catalog, with standard/Retina dimensions and genuine-alpha tests. Developer ID signing/notarization, translation quality, and end-to-end performance are not validated.
+
+For the development preview, retain its explicit signing warning and incomplete manual-acceptance status in the [release notes](releases/v0.1.0-beta.1.md). Publishing this preview is not completion of the public-distribution checklist.
 
 Recheck version, build, channel, and `PrivacyInfo.xcprivacy` on the exact distribution artifact after signing and packaging. Local build success is not a public-signing result, a CI result, or whole-runtime acceptance.
 
@@ -19,7 +21,7 @@ Building or packaging does not authorize or perform publication. Development pac
 
 Both modes require a nonempty repository license and validate bundle version/build/channel, arm64 executable support, minimum macOS metadata matching `Config/Application.xcconfig` in both the bundle and executable (currently 26.4), and a valid bundled privacy manifest. Without `--development`, packaging additionally requires an owner-confirmed public identifier passed through `--confirmed-distribution-id` that matches both `Config/Distribution.xcconfig` and the app, Developer ID Application signing with a valid team and hardened runtime, a successful notarized Gatekeeper assessment, and a valid stapled ticket. `--app` can select an existing Lens.app by absolute physical path. Signing and notarization must already be complete; the package command only validates them.
 
-The public identifier is currently blank, so public packaging is blocked. Once the gates are met, it writes `dist/Lens-0.1.0-beta.1-1.zip` and a `.zip.sha256` sidecar without overwriting existing files. Both ZIP variants contain `Lens.app` and `LICENSE` at the archive root; the privacy manifest stays inside the app's resources. Verify these entries in the actual archive. Package validation is not a substitute for manual acceptance or publication approval.
+The public identifier is currently blank, so public packaging is blocked. Once the gates are met, it writes `dist/Lens-0.1.0-beta.1-2.zip` and a `.zip.sha256` sidecar without overwriting existing files. Both ZIP variants contain `Lens.app` and `LICENSE` at the archive root; the privacy manifest stays inside the app's resources. Verify these entries in the actual archive. Package validation is not a substitute for manual acceptance or publication approval.
 
 ## Manual Developer ID build and notarization
 
@@ -73,8 +75,8 @@ codesign --verify --deep --strict "$LENS_RELEASE_APP"
 spctl --assess --type execute --verbose=2 "$LENS_RELEASE_APP"
 bash scripts/lens.sh package --derived-data "$LENS_RELEASE_DD" \
   --app "$LENS_RELEASE_APP" --confirmed-distribution-id "$LENS_PUBLIC_ID"
-unzip -l dist/Lens-0.1.0-beta.1-1.zip
-(cd dist && shasum -a 256 -c Lens-0.1.0-beta.1-1.zip.sha256)
+unzip -l dist/Lens-0.1.0-beta.1-2.zip
+(cd dist && shasum -a 256 -c Lens-0.1.0-beta.1-2.zip.sha256)
 ```
 
 Do not distribute the submission ZIP. The final package includes the license and stapled app; any subsequent app modification requires renewed signature/notarization checks. Complete manual acceptance on that exact package before separately authorized publication. No public identifier, signing success, notarization acceptance, or publication is implied by these examples.
@@ -86,7 +88,7 @@ Do not distribute the submission ZIP. The final package includes the license and
 - [ ] Decide and record the public bundle identifier. Assess effects on existing preferences and Screen Recording grants; do not silently replace the installed development identity.
 - [ ] Confirm the intended Developer ID Application signing identity/team, hardened runtime, and necessary entitlements for the final artifact.
 - [ ] Confirm a final app icon is included and displays correctly in Finder, Dock, and the About window.
-- [ ] Verify the packaged app reports version 0.1.0, build 1, and channel beta.1; check native About display 0.1.0-beta.1 (1). Keep the prerelease tag separate from the numeric app version.
+- [ ] Verify the packaged app reports version 0.1.0, build 2, and channel beta.1; check native About display 0.1.0-beta.1 (2). Keep the prerelease tag separate from the numeric app version.
 - [ ] Verify the signed bundle contains the privacy manifest and its declared API reasons match the current code. A manifest is not privacy certification.
 - [ ] Inspect the final build/package command contract and run its required checks against the candidate revision. Record test failures and skipped/opt-in checks explicitly.
 - [ ] Check signature validity, notarization acceptance, stapling, and Gatekeeper behavior on the exact public artifact. An ad-hoc development package cannot satisfy this gate.
