@@ -6,7 +6,7 @@ let package = Package(
     platforms: [.macOS("26.4")],
     products: [.executable(name: "Lens", targets: ["Lens"])],
     targets: [
-        .executableTarget(name: "Lens", path: "Sources/Lens"),
+        .executableTarget(name: "Lens", path: "Sources/Lens", resources: [.process("Resources")]),
         .testTarget(name: "LensTests", dependencies: ["Lens"], path: "Tests/LensTests")
     ],
     swiftLanguageModes: [.v6]

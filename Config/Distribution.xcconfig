@@ -1,0 +1,8 @@
+#include "Application.xcconfig"
+
+// Set the confirmed identifier before producing any public artifact.
+LENS_DISTRIBUTION_BUNDLE_IDENTIFIER =
+PRODUCT_BUNDLE_IDENTIFIER = $(LENS_DISTRIBUTION_BUNDLE_IDENTIFIER)
+CODE_SIGN_IDENTITY = Developer ID Application
+CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO
+// Supply DEVELOPMENT_TEAM from the signing environment; never store credentials here.

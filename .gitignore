@@ -1,6 +1,12 @@
 .build/
 /build*/
 /DerivedData/
+/dist/
+*.p12
+*.p8
+*.mobileprovision
+*.provisionprofile
+*.keychain-db
 *.log
 .env
 .env.*
