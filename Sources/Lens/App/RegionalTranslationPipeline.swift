@@ -206,8 +206,20 @@ import CoreImage
             if $0.waitingSince != $1.waitingSince { return $0.waitingSince < $1.waitingSince }
             return $0.block.id.uuidString < $1.block.id.uuidString
         }
-        guard let language = pending.first?.block.language else { return false }
-        let batch = Array(pending.filter { $0.block.language == language }.prefix(4))
+        guard !pending.isEmpty else { return false }
+        
+        // Use explicitly selected source language if set; otherwise fall back to detected language (auto-detect mode)
+        let translationSource = context.source ?? pending.first?.block.language
+        guard let language = translationSource else { return false }
+        
+        // When source is explicitly set, batch all pending records (OCR already constrained to that language)
+        // When auto-detect, batch only records with the same detected language
+        let batch: [Record]
+        if context.source != nil {
+            batch = Array(pending.prefix(4))
+        } else {
+            batch = Array(pending.filter { $0.block.language == language }.prefix(4))
+        }
         for record in batch {
             if let index = records.firstIndex(where: { $0.block.id == record.block.id }) { records[index].needsTranslation = false }
             diagnostics.translationQueueWait = max(diagnostics.translationQueueWait, now() - record.waitingSince)
