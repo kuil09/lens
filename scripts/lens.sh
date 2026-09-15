@@ -136,6 +136,7 @@ check_repo() {
     bash "$ROOT/scripts/tests/repository-hygiene.sh"
     bash "$ROOT/scripts/tests/regression.sh"
     python3 -B "$ROOT/scripts/tests/dmg-settings.py"
+    python3 -B "$ROOT/scripts/tests/notarization.py"
     printf 'Lens checks passed.\n'
 }
 

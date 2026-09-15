@@ -26,6 +26,8 @@ Building or packaging does not authorize or perform publication. Development pac
 
 ## Packaging contract
 
+GitHub Actions supports a separate protected, manual [notarized DMG workflow](ci-notarization.md). It uploads verified CI artifacts only, never replaces Releases, and preserves the existing signer/bundle identity. Ordinary CI packages an explicitly nonnotarized development build. See the [remote change review](reviews/2026-09-15-remote-ci.md) for implementation findings and verification limits.
+
 DMG creation now uses pinned packaging-only `dmgbuild` tools and the checked-in Finder artwork. See [setup and verification](dmg-installer.md). Application compilation and ZIP packaging do not require these tools.
 
 This documents the existing development and external Developer ID packaging modes. It is not a store implementation or submission checklist.
