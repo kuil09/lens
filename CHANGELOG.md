@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-beta.5 — 2026-09-16 (build 12 candidate)
+
+- Completed onboarding now returns to a paused lens on ordinary launch or reopening. Permission recovery remains a separate normal window, with no automatic capture or recording.
+- Ordinary app/Finder activation no longer restarts the installed-language census. Translation readiness distinguishes checking, ready, missing, and failed states; one explicit pending start can be canceled and never opens a download guide merely because a check is in progress.
+- Preserve language choices when a census fails, and retry on the next explicit start. Cancel pending starts on language changes, closing, suspension, and system-settings handoff.
+- Include previously source-only changes: system language download guidance, explicit-source request forwarding, and protected signing CI. Explicit source remains a translation hint, not a filter excluding other detected languages.
+- Replacement distribution is gated on the build-12 validation record; build 11 remains the published asset until replacement succeeds.
+
 ## 0.1.0-beta.5 — 2026-09-15 (build 11)
 
 - Redesigned the Finder installer with aligned 96-point app/folder icons, a directional arrow, and English, Korean, and Japanese drag-to-install guidance. Packaging-only dependencies are pinned; none enter the app.

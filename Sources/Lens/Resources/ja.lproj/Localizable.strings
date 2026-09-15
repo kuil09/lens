@@ -262,3 +262,6 @@
 "System Language Download…" = "システム言語ダウンロード…";
 "Only installed translation packs appear here. Sources must support OCR and translation into the selected target. Add languages in System Language Download." = "インストール済みの翻訳言語のみ表示します。原文は画面認識と選択した翻訳先への翻訳に対応する言語です。追加は「システム言語ダウンロード」で行えます。";
 "Check readiness in System Language Download" = "「システム言語ダウンロード」で準備状況を確認してください";
+"Could not check translation languages. Try again." = "翻訳言語を確認できませんでした。もう一度お試しください。";
+"Checking languages. Turn off to cancel starting translation." = "言語を確認しています。オフにすると翻訳の開始を取り消します。";
+"Cancel Start" = "開始を取り消す";

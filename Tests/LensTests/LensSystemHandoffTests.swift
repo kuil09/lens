@@ -40,7 +40,7 @@ import Testing
     #expect(LensReturnDestination.resolve(requestPending: false, handoffPending: false,
         hasVisibleWindows: false, onboardingCompleted: false) == .onboarding)
     #expect(LensReturnDestination.resolve(requestPending: false, handoffPending: false,
-        hasVisibleWindows: false, onboardingCompleted: true) == .guide)
+        hasVisibleWindows: false, onboardingCompleted: true) == .lens)
     #expect(LensReturnDestination.resolve(requestPending: false, handoffPending: false,
         hasVisibleWindows: true, onboardingCompleted: true) == .none)
 }

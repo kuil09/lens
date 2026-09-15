@@ -28,6 +28,8 @@ final class LensModel: ObservableObject {
     @Published var hasFrame = false
     @Published var translations: [DisplayTranslation] = []
     @Published var metrics = L10n.text("Waiting for measurements")
+    @Published private(set) var readiness: TranslationReadiness = .checking
+    @Published var startRequest = TranslationStartRequest()
     var onRestart: (() -> Void)?
     var onRegionInvalidated: (() -> Void)?
     weak var surface: LensSurface?
@@ -74,8 +76,10 @@ final class LensModel: ObservableObject {
     var regionVersion: UInt64 { gate.version.region }
     var selectableSources: [LensLanguage] { languages.installedSources(to: target) }
     var canTranslate: Bool {
-        guard !languages.checkingInstallation, !languages.loading,
-              languages.installedTargets.contains(target) else { return false }
+        readiness == .ready
+    }
+    private var hasInstalledSelection: Bool {
+        guard languages.installedTargets.contains(target) else { return false }
         return source.map { selectableSources.contains($0) } ?? !selectableSources.isEmpty
     }
     var systemTarget: LensLanguage {
@@ -95,12 +99,15 @@ final class LensModel: ObservableObject {
         settingsChanged()
         refreshLanguageRoutes()
     }
+    func prepareLanguageCheck() { readiness = .checking }
     func refreshLanguages() async {
         let token = UUID(); refreshGeneration = token
+        readiness = .checking
         languageRefresh?.cancel()
         let previousSources = selectableSources
         await languages.load()
         guard refreshGeneration == token, !Task.isCancelled else { return }
+        if let error = languages.error { readiness = .failed(error); return }
         let oldTarget = target
         changingLanguagePair = true
         applyLanguagePreferences()
@@ -109,8 +116,9 @@ final class LensModel: ObservableObject {
         await languages.refresh(target: target)
         guard refreshGeneration == token, !Task.isCancelled else { return }
         reconcileSource()
+        readiness = hasInstalledSelection ? .ready : .missing
         if running && !canTranslate { suspend() }
-        else if previousSources != selectableSources { settingsChanged() }
+        else if running && previousSources != selectableSources { settingsChanged() }
     }
     private func applyLanguagePreferences() {
         guard languages.hasLoaded else { return }
@@ -122,13 +130,15 @@ final class LensModel: ObservableObject {
         }
     }
     private func refreshLanguageRoutes() {
-        refreshGeneration = UUID()
+        let token = UUID(); refreshGeneration = token
+        readiness = .checking
         languageRefresh?.cancel()
         languageRefresh = Task { [weak self] in
             guard let self else { return }
             await languages.refresh(target: target)
-            guard !Task.isCancelled else { return }
+            guard refreshGeneration == token, !Task.isCancelled else { return }
             reconcileSource()
+            readiness = languages.error.map { .failed($0) } ?? (hasInstalledSelection ? .ready : .missing)
             if running && !canTranslate { suspend() }
         }
     }
@@ -146,9 +156,13 @@ final class LensModel: ObservableObject {
         translations = []; surface?.overlay.translations = []
     }
     func begin() { running = true; status = L10n.text("Connecting to the screen…") }
-    func suspend() { running = false; hasFrame = false; invalidate(); surface?.canvas.clear(); status = L10n.text("Pause") }
+    func suspend() { startRequest.cancel(); running = false; hasFrame = false; invalidate(); surface?.canvas.clear(); status = L10n.text("Pause") }
     private func settingsChanged() {
+        startRequest.cancel()
         guard !changingLanguagePair else { return }
+        if readiness != .checking {
+            readiness = languages.error.map { .failed($0) } ?? (hasInstalledSelection ? .ready : .missing)
+        }
         invalidate(); if running { onRestart?() }
     }
     private func receive(_ frame: CapturedFrame) {

@@ -71,7 +71,7 @@ import Testing
     state.permissionGranted = true
     let guide = LensPermissionGuide(state: state, model: model, catalog: catalog,
         recording: LensRecording(), onSettings: {}, onRefresh: {}, onContinue: {}, onQuit: {})
-    #expect(guide.title == L10n.text("Continue Setup"))
+    #expect(guide.title == L10n.text("Checking installed languages…"))
     await model.refreshLanguages()
     #expect(model.canTranslate)
     #expect(guide.title == L10n.text("Ready when you are"))

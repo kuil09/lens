@@ -16,9 +16,10 @@ struct LensPermissionGuide: View {
         if state.deferred { return L10n.text("Lens is paused") }
         guard state.permissionGranted else { return L10n.text("Allow screen access to translate") }
         if checkingLanguages { return L10n.text("Checking installed languages…") }
+        if case .failed = model.readiness { return L10n.text("Could not check translation languages. Try again.") }
         return model.canTranslate ? L10n.text("Ready when you are") : L10n.text("Continue Setup")
     }
-    private var checkingLanguages: Bool { catalog.loading || catalog.checkingInstallation }
+    private var checkingLanguages: Bool { model.readiness == .checking }
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 14) {
@@ -42,6 +43,8 @@ struct LensPermissionGuide: View {
                                 .disabled(state.requestingPermission || recording.isFinishing)
                         } else if checkingLanguages {
                             ProgressView(L10n.text("Checking installed languages…")).controlSize(.small)
+                        } else if case .failed = model.readiness {
+                            Text(L10n.text("Could not check translation languages. Try again.")).foregroundStyle(.secondary)
                         } else if !model.canTranslate {
                             Text(L10n.text("Prepare a translation language pack first")).foregroundStyle(.secondary)
                         }

@@ -36,13 +36,42 @@ import AppKit
 }
 
 enum LensReturnDestination: Equatable {
-    case none, onboarding, guide
+    case none, onboarding, guide, lens
 
     static func resolve(requestPending: Bool, handoffPending: Bool,
-                        hasVisibleWindows: Bool, onboardingCompleted: Bool) -> Self {
+                        hasVisibleWindows: Bool, onboardingCompleted: Bool,
+                        permissionGranted: Bool = true) -> Self {
         guard !requestPending else { return .none }
         if handoffPending { return .guide }
         guard !hasVisibleWindows else { return .none }
-        return onboardingCompleted ? .guide : .onboarding
+        if !onboardingCompleted { return .onboarding }
+        return permissionGranted ? .lens : .guide
+    }
+}
+
+enum TranslationReadiness: Equatable {
+    case checking, ready, missing, failed(String)
+}
+
+/// A single explicit intent, never an automatic start caused by app activation.
+struct TranslationStartRequest: Equatable {
+    enum Action: Equatable { case wait, start, guide, retry, none }
+    private(set) var pending = false
+
+    mutating func request(_ readiness: TranslationReadiness) -> Action {
+        pending = true
+        return resolve(readiness)
+    }
+    mutating func cancel() { pending = false }
+    mutating func resolve(_ readiness: TranslationReadiness) -> Action {
+        guard pending else { return .none }
+        if readiness == .checking { return .wait }
+        pending = false
+        switch readiness {
+        case .ready: return .start
+        case .missing: return .guide
+        case .failed: return .retry
+        case .checking: return .wait
+        }
     }
 }

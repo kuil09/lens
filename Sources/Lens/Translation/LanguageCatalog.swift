@@ -68,9 +68,15 @@ struct TranslationRoute: Equatable, Sendable {
         defer { if loadGeneration == token { checkingInstallation = false } }
         let fetched = await languageLoader()
         guard loadGeneration == token, !Task.isCancelled else { return }
+        guard !fetched.isEmpty else {
+            error = L10n.text("Could not check translation languages. Try again.")
+            return
+        }
+        let recognition: [String]
+        do { recognition = try recognitionLoader(); error = nil }
+        catch { self.error = error.localizedDescription; return }
         languages = fetched
-        do { recognitionIdentifiers = try recognitionLoader(); error = nil }
-        catch { recognitionIdentifiers = []; self.error = error.localizedDescription }
+        recognitionIdentifiers = recognition
         guard checkInstallation else { return }
         // A target is usable only when at least one OCR source has an installed
         // route to it. Never infer installation from supportedLanguages or an

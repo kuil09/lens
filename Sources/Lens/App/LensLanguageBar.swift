@@ -37,14 +37,17 @@ struct LensLanguageBar: View {
                 HStack { Divider() }.frame(width: 1, height: 28)
                     .position(x: geometry.size.width - 56, y: geometry.size.height / 2)
                 VStack(spacing: 4) {
-                    Text(L10n.text("Translation")).font(.caption).foregroundStyle(.secondary)
-                        .lineLimit(1).minimumScaleFactor(0.8).accessibilityHidden(true)
-                    Toggle(L10n.text("Translation"), isOn: Binding(get: { model.running }, set: { if $0 != model.running { onToggle() } }))
+                    if model.readiness == .checking {
+                        ProgressView().controlSize(.mini)
+                            .accessibilityLabel(L10n.text("Checking installed languages…"))
+                    } else {
+                        Text(L10n.text("Translation")).font(.caption).foregroundStyle(.secondary)
+                            .lineLimit(1).minimumScaleFactor(0.8).accessibilityHidden(true)
+                    }
+                    Toggle(L10n.text("Translation"), isOn: Binding(get: { model.running || model.startRequest.pending }, set: { if $0 != (model.running || model.startRequest.pending) { onToggle() } }))
                         .labelsHidden().toggleStyle(.switch).controlSize(.small)
-                        .disabled(!model.running && !model.canTranslate)
                         .frame(height: 24)
-                        .help(model.running ? L10n.text("Turn translation off and show the frosted background.") :
-                            (!model.canTranslate ? L10n.text("Prepare language packs before starting.") : L10n.text("Reveal the screen underneath and start translating.")))
+                        .help(model.running ? L10n.text("Turn translation off and show the frosted background.") : readinessHelp)
                 }
                 .frame(width: 44, height: geometry.size.height)
                 .position(x: geometry.size.width - 22, y: geometry.size.height / 2)
@@ -52,6 +55,16 @@ struct LensLanguageBar: View {
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
         .frame(height: 64)
+    }
+
+    private var readinessHelp: String {
+        if model.startRequest.pending { return L10n.text("Checking languages. Turn off to cancel starting translation.") }
+        switch model.readiness {
+        case .checking: return L10n.text("Checking installed languages…")
+        case .missing: return L10n.text("Prepare language packs before starting.")
+        case .failed: return L10n.text("Could not check translation languages. Try again.")
+        case .ready: return L10n.text("Reveal the screen underneath and start translating.")
+        }
     }
 
     private var sourcePicker: some View {

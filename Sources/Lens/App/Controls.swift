@@ -113,9 +113,9 @@ struct LensControls: View {
             } footer: { Text(L10n.text("Uses individually downloaded translation packs on this Mac, not the full Apple Intelligence language list. Languages are never downloaded automatically.")) }
             Section {
                 LabeledContent {
-                    Button(model.running ? L10n.text("Pause") : L10n.text("Start Translation"), action: onToggle)
+                    Button(model.startRequest.pending ? L10n.text("Cancel Start") : (model.running ? L10n.text("Pause") : L10n.text("Start Translation")), action: onToggle)
                         .modifier(LensGlassAction(prominent: !model.running))
-                        .disabled(!model.running && (!model.canTranslate || model.permissionNeeded))
+                        .disabled(model.permissionNeeded)
                 } label: {
                     Label(model.permissionNeeded ? L10n.text("Permission Needed") : (model.running ? L10n.text("Translating") : L10n.text("Paused")),
                           systemImage: model.permissionNeeded ? "exclamationmark.circle" : (model.running ? "play.circle" : "pause.circle"))

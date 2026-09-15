@@ -77,6 +77,12 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
             if finished { if resumeAfterArrangement { resumeAfterArrangement = false; restart() } }
             else { interruptForArrangement() }
         }
+        model.$readiness.removeDuplicates().sink { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.handleStartAction(self.model.startRequest.resolve(self.model.readiness))
+            }
+        }.store(in: &modelObservers)
         model.onRestart = { [weak self] in self?.restart() }
         model.onRegionInvalidated = { [weak self] in self?.recording.stop() }
         recording.onStateChange = { [weak self] in
@@ -121,18 +127,18 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
         model.suspend()
         refreshPermissionStatus()
         refreshLanguageCatalog()
-        if !onboarding.completed { showOnboarding() }
-        else { showPermissionGuide() }
+        restoreUserInterface()
     }
     func applicationDidBecomeActive(_ notification: Notification) {
         guard lens != nil, !terminating else { return }
         refreshPermissionStatus()
-        refreshLanguageCatalog()
+        if systemHandoff.needsReturnGuide { refreshLanguageCatalog() }
         restoreUserInterface()
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         guard lens != nil, !terminating else { return false }
         refreshPermissionStatus()
+        if systemHandoff.needsReturnGuide { refreshLanguageCatalog() }
         restoreUserInterface()
         return true
     }
@@ -144,11 +150,12 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
         let destination = LensReturnDestination.resolve(requestPending: permissionTask != nil,
             handoffPending: systemHandoff.needsReturnGuide,
             hasVisibleWindows: NSApp.windows.contains { $0.isVisible && !$0.isMiniaturized && $0.canBecomeKey },
-            onboardingCompleted: onboarding.completed)
+            onboardingCompleted: onboarding.completed, permissionGranted: onboarding.permissionGranted)
         switch destination {
         case .none: break
         case .onboarding: showOnboarding()
         case .guide: showPermissionGuide()
+        case .lens: showLens()
         }
     }
     private func refreshPermissionStatus() {
@@ -157,6 +164,7 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
     }
     private func refreshLanguageCatalog() {
         languageCatalogTask?.cancel()
+        model.prepareLanguageCheck()
         languageCatalogTask = Task { await model.refreshLanguages() }
     }
     private func installMenu() {
@@ -338,7 +346,6 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
         refreshPermissionStatus()
         guard onboarding.permissionGranted else { return }
         if !onboarding.completed { showOnboarding() }
-        else if !model.canTranslate { showPreparation() }
         else { toggle() }
     }
 
@@ -364,6 +371,7 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
 
     private func yieldToSystemSettings() {
         guard lens != nil else { return }
+        model.startRequest.cancel()
         systemHandoff.begin(window: lens) { pause() }
         model.status = L10n.text("Lens yielded input to System Settings. Choose Show Lens or Start Translation when finished.")
     }
@@ -418,7 +426,7 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         if menuItem.action == #selector(toggle) {
             menuItem.title = model.running ? L10n.text("Pause Translation") : (model.permissionNeeded ? L10n.text("Check Screen Recording Access…") : L10n.text("Start Translation"))
-            return model.running || model.permissionNeeded || model.canTranslate
+            return true
         }
         if menuItem.action == #selector(toggleLock) { menuItem.state = model.locked ? .on : .off }
         if menuItem.action == #selector(saveCapture) { return model.hasFrame && directoryPanel == nil }
@@ -498,6 +506,7 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
         }
     }
     @objc private func toggle() {
+        if model.startRequest.pending { model.startRequest.cancel(); return }
         if model.running { pause(); return }
         guard permissionTask == nil, !terminating else { return }
         guard model.capture.access.isGranted else {
@@ -505,7 +514,25 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
             showPermissionGuide()
             return
         }
-        guard model.canTranslate else { showPreparation(); return }
+        if case .failed = model.readiness {
+            refreshLanguageCatalog()
+            _ = model.startRequest.request(.checking)
+            return
+        }
+        handleStartAction(model.startRequest.request(model.readiness))
+    }
+    private func handleStartAction(_ action: TranslationStartRequest.Action) {
+        guard !terminating, permissionTask == nil else { model.startRequest.cancel(); return }
+        guard !systemHandoff.needsReturnGuide else { model.startRequest.cancel(); return }
+        switch action {
+        case .none, .wait: return
+        case .retry:
+            model.status = L10n.text("Could not check translation languages. Try again.")
+            return
+        case .guide: showPreparation(); return
+        case .start: break
+        }
+        guard model.capture.access.isGranted else { showPermissionGuide(); return }
         permissionWindow?.orderOut(nil)
         onboardingWindow?.orderOut(nil)
         systemHandoff.show(window: lens)
@@ -607,6 +634,7 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
         surface.setTranslationActive(false, arranging: resumeAfterArrangement)
     }
     func windowWillClose(_ notification: Notification) {
+        model.startRequest.cancel()
         if notification.object as? NSWindow === onboardingWindow {
             onboardingWindow = nil
             // Closing the setup is an explicit defer, not a capture-start action.
@@ -628,6 +656,7 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
         pause()
     }
     @objc private func showPreparation() {
+        model.startRequest.cancel()
         if let preparation { preparation.deminiaturize(nil); preparation.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }
         let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 600, height: 520), styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
         window.contentMinSize = CGSize(width: 520, height: 480)
