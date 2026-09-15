@@ -24,11 +24,17 @@ The reported Finder-return language-pack popup was not reproduced in the initial
 
 Computer-use capture intermittently failed with SCStreamError -3811. A TextEdit fixture launch timed out; an in-app browser fixture was opened instead. The runtime capture did not reliably align with that fixture, so controlled visual translation quality is NOT_RUN. No screen captures, personal screen text, or private paths are checked into the repository.
 
-## Distribution gate (pending)
+## Distribution verification
 
 At implementation time GitHub release-signing still lacked LENS_APPLE_ID and LENS_APPLE_APP_PASSWORD. Existing local Lens-notary authentication worked. The owner permits local fallback.
 
-Final secure-timestamp build, app/DMG notarization, exact-package installation, GitHub replacement/download, and post-download launch are pending. This document does not claim CI notarization success or a completed replacement.
+- Application source commit: f29451b3477716e91f2fcc366d2c4255c3ac1a45. Subsequent release-documentation changes do not change the app source.
+- [GitHub CI](https://github.com/kuil09/lens/actions/runs/35018183144) passed checks, tests, Release build, DMG generation and upload. This is development packaging CI, not CI notarization.
+- Local fallback: secure-timestamp Developer ID build; app submission c4f19211-68b3-4ef4-bcc8-e3112b324ab8 and DMG submission 72162e79-bb34-4723-af0c-e98c22baca13 were Accepted.
+- App and DMG tickets validate; Gatekeeper reports Notarized Developer ID. The read-only mounted app matches the signed build, license matches, and Applications resolves correctly.
+- Exact DMG installed into Applications before release replacement: build 12 opens a paused lens without a setup guide; folder-return translation and PNG/MP4 saving succeeded. Existing source/target selections persisted.
+- Final DMG SHA-256: c3276a6d82164d73f1cdc0b3af1906a1d0467ba5d702ac2ee9359fc733962af9.
+- The above installation uses the local final DMG. GitHub download and post-download installation are a separate publication gate; they are not implied by CI or notarization.
 
 ## Limits
 

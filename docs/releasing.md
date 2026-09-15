@@ -2,7 +2,7 @@
 
 ## Candidate status
 
-**Current release, September 15, 2026:** source and GitHub preview are beta.5/build 11, retaining `dev.local.lens`. The owner explicitly resumed notarization for this new build, not the withdrawn build 3, and subsequently authorized history cleanup and GitHub publication. See [release notes](releases/v0.1.0-beta.5.md) and [installer evidence and reproduction](dmg-installer.md). The wrapper's public-identifier gate below remains unchanged; this manual release does not authorize future publication or change App Store scope.
+**Current release, September 16, 2026:** beta.5/build 12 retains `dev.local.lens` and the existing Developer ID. The owner authorized replacing the beta.5 download after fixing normal launch and language readiness. App and DMG notarization passed through the existing local Keychain fallback; CI notarization remains unverified because two Apple authentication secrets are missing. See [release notes](releases/v0.1.0-beta.5.md) and [build-12 evidence](releases/build-12-validation.md). The historical sections below do not describe the current release.
 
 ### Historical beta.3 checkpoint
 

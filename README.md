@@ -4,7 +4,7 @@
 
 Translate text where you see it on your Mac. Place a resizable lens over a document, website, or app to display translations near the original text, using Vision OCR and Apple Translation on-device.
 
-**Notarized preview: [v0.1.0-beta.5](https://github.com/kuil09/lens/releases/tag/v0.1.0-beta.5), app 0.1.0 (build 11).** Download the DMG and its SHA-256 sidecar from the release. Both the app and DMG are **Developer ID signed, Apple-notarized, and stapled**; local Gatekeeper assessments passed. This remains a beta: clean-Mac installation, formal whole-runtime acceptance, translation quality, and end-to-end performance remain incomplete. Do not disable macOS security protections.
+**Notarized preview: [v0.1.0-beta.5](https://github.com/kuil09/lens/releases/tag/v0.1.0-beta.5), app 0.1.0 (build 12).** Download the DMG and its SHA-256 sidecar from the release. Both the app and DMG are **Developer ID signed, Apple-notarized, and stapled**; local Gatekeeper assessments passed. This remains a beta: clean-Mac installation, formal whole-runtime acceptance, translation quality, and end-to-end performance remain incomplete. Do not disable macOS security protections.
 
 The redesigned drag-and-drop installer has aligned app/folder icons and English, Korean, and Japanese instructions. See [beta.5 release notes](docs/releases/v0.1.0-beta.5.md) and [installer verification](docs/dmg-installer.md). Capture confirmation, the save-folder shortcut, and window-return behavior are documented in the [UX review](docs/ux-capture-and-windows.md). Earlier releases and source tags are historical; their notarization status has not changed.
 
