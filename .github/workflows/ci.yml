@@ -49,7 +49,7 @@ jobs:
         run: |
           PATH="$RUNNER_TEMP/lens-packaging/bin:$PATH" make package ARGS='--development --format dmg'
       - name: Upload DMG artifact
-        uses: actions/upload-artifact@8f95495a34f086e3c5e8093775a395635438e5d9 # v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: Lens-development-${{ github.sha }}
           path: |
