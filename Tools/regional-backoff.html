@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Lens regional backoff fixture</title>
+<style>
+  * { box-sizing: border-box }
+  body { margin: 24px; font: 20px/1.55 system-ui; color: #172331; background: #f4f5f7 }
+  nav { display: flex; gap: 8px; margin-bottom: 20px }
+  button { font: inherit; padding: 6px 12px }
+  main { width: 740px; display: grid; grid-template-columns: 480px 240px; gap: 20px }
+  article, aside { background: white; padding: 20px; border-radius: 12px }
+  h1 { font-size: 22px; margin: 0 0 12px }
+  p { margin: 12px 0 }
+  .spinner { width: 32px; height: 32px; border: 5px solid #ddd; border-top-color: #246dea; border-radius: 50%; animation: spin .5s linear infinite }
+  body.paused .spinner { animation-play-state: paused }
+  @keyframes spin { to { transform: rotate(360deg) } }
+  footer { margin-top: 18px; font-size: 14px; color: #485566; max-width: 740px }
+  .below { margin-top: 240px; width: 740px; padding: 20px; background: white }
+</style>
+<nav><button id="pause">Pause changes</button><button id="number">Change number / negation</button><button id="page">Replace page</button></nav>
+<main>
+  <article><h1>Stable document</h1><p>This paragraph must stay translated while the clock and loading indicator move beside it.</p><p id="critical">Do not delete the remaining 12 files.</p><p>The selected language and save folder must stay unchanged.</p></article>
+  <aside><h1>Changing area</h1><div class="spinner"></div><p id="changing">The current state is A.</p><p id="clock"></p></aside>
+</main>
+<footer>Place the 800 × 500 lens over the two panels. Observe the stable paragraph, pause changes, toggle the numeric sentence, and scroll. This page uses synthetic text only.</footer>
+<div class="below">After scrolling, translations from the previous position must not reappear here.</div>
+<script>
+  let paused = false, tick = 0, alternate = false, page = false;
+  document.querySelector('#pause').onclick = event => {
+    paused = !paused; document.body.classList.toggle('paused', paused);
+    event.target.textContent = paused ? 'Resume changes' : 'Pause changes';
+  };
+  document.querySelector('#number').onclick = () => {
+    alternate = !alternate;
+    document.querySelector('#critical').textContent = alternate ? 'Delete the remaining 13 files.' : 'Do not delete the remaining 12 files.';
+  };
+  document.querySelector('#page').onclick = () => {
+    page = !page;
+    document.querySelector('article').style.background = page ? '#d1e4ff' : '#fff';
+    document.querySelector('article h1').textContent = page ? 'Replacement document' : 'Stable document';
+    document.querySelector('article p').textContent = page ? 'This is a new page. Previous translations must not cover the replacement document.' : 'This paragraph must stay translated while the clock and loading indicator move beside it.';
+  };
+  setInterval(() => {
+    if (paused) return;
+    tick++;
+    document.querySelector('#changing').textContent = `The current state is ${tick % 2 ? 'B' : 'A'}.`;
+    document.querySelector('#clock').textContent = `Clock: ${(tick / 10).toFixed(1)} seconds`;
+  }, 100);
+</script>
+</html>
