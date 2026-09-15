@@ -221,7 +221,7 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
         let help = submenu(L10n.text("Help"))
         command(help, L10n.text("Lens Help"), #selector(showHelp), "?", target: self)
         command(help, L10n.text("Getting Started…"), #selector(showOnboarding), target: self)
-        command(help, L10n.text("Language Packs…"), #selector(showPreparation), target: self)
+        command(help, L10n.text("System Language Download…"), #selector(showPreparation), target: self)
         NSApp.helpMenu = help
         NSApp.mainMenu = main
 
@@ -629,10 +629,10 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
     }
     @objc private func showPreparation() {
         if let preparation { preparation.deminiaturize(nil); preparation.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }
-        let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 600, height: 600), styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
-        window.contentMinSize = CGSize(width: 520, height: 560)
-        window.title = L10n.text("Language Packs"); window.isReleasedWhenClosed = false
-        window.contentView = NSHostingView(rootView: LanguagePreparationView(model: model,
+        let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 600, height: 520), styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
+        window.contentMinSize = CGSize(width: 520, height: 480)
+        window.title = L10n.text("System Language Download"); window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(rootView: SystemLanguageGuideView(model: model,
             onReady: { [weak window] in window?.performClose(nil) }))
         window.delegate = self; window.tabbingMode = .disallowed
         window.center(); window.makeKeyAndOrderFront(nil)

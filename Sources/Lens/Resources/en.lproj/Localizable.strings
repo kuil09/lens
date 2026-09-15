@@ -246,3 +246,19 @@
 "Could Not Open Save Folder" = "Could Not Open Save Folder";
 "Cannot open the save folder in Finder. Try again or choose a folder again in Settings → Capture." = "Cannot open the save folder in Finder. Try again or choose a folder again in Settings → Capture.";
 "Connect the screen to record a video." = "Connect the screen to record a video.";
+
+// System Language Download Guide
+"System Language Download" = "System Language Download";
+"Download translation languages from macOS System Settings" = "Download translation languages from macOS System Settings";
+"Open System Settings → General → Language & Region → Translation Languages" = "Open System Settings → General → Language & Region → Translation Languages";
+"Click the button below to open the system Translation Languages settings." = "Click the button below to open the system Translation Languages settings.";
+"After downloading, return to Lens and click Check Again." = "After downloading, return to Lens and click Check Again.";
+"You can continue using installed languages without downloading." = "You can continue using installed languages without downloading.";
+"Open System Settings…" = "Open System Settings…";
+"Checking installed translation languages…" = "Checking installed translation languages…";
+"Translation languages are ready." = "Translation languages are ready.";
+"Some translation languages need to be downloaded." = "Some translation languages need to be downloaded.";
+
+"System Language Download…" = "System Language Download…";
+"Only installed translation packs appear here. Sources must support OCR and translation into the selected target. Add languages in System Language Download." = "Only installed translation packs appear here. Sources must support OCR and translation into the selected target. Add languages in System Language Download.";
+"Check readiness in System Language Download" = "Check readiness in System Language Download";

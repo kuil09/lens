@@ -122,7 +122,7 @@ struct LensOnboardingView: View {
                 Label(L10n.text("The selected languages are ready"), systemImage: "checkmark.circle")
             }
             HStack {
-                Button(L10n.text("Add Language Packs…"), action: onPrepare)
+                Button(L10n.text("System Language Download…"), action: onPrepare)
                 Button(L10n.text("Check Again"), action: onRefresh).disabled(catalog.checkingInstallation || catalog.loading)
             }
             Text(L10n.text("Internet access is needed only to download new language packs. Display, keyboard, and voice languages are separate."))

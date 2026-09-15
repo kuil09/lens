@@ -90,11 +90,11 @@ struct LensControls: View {
                     ForEach(languages.installedTargets) { Text($0.title).tag(Optional($0)) }
                 }.disabled(languages.checkingInstallation || languages.installedTargets.isEmpty)
             } header: { Text(L10n.text("Languages")) } footer: {
-                Text(L10n.text("Only installed translation packs appear here. Sources must support OCR and translation into the selected target. Add languages in Language Packs."))
+                Text(L10n.text("Only installed translation packs appear here. Sources must support OCR and translation into the selected target. Add languages in System Language Download."))
             }
             Section {
                 LabeledContent(L10n.text("On-Device Translation")) {
-                    Button(L10n.text("Language Packs…"), action: onPrepare)
+                    Button(L10n.text("System Language Download…"), action: onPrepare)
                         .modifier(LensGlassAction())
                 }
                 if languages.loading || languages.checkingInstallation {
@@ -104,7 +104,7 @@ struct LensControls: View {
                 } else if model.source?.isSameLanguage(as: model.target) == true {
                     Text(L10n.text("The source and target languages are the same.")).foregroundStyle(.secondary)
                 } else if let source = model.source, let route = languages.route(from: source, to: model.target) {
-                    Label(route.status == .installed ? L10n.text("The selected languages are ready") : L10n.text("Check readiness in Language Packs"),
+                    Label(route.status == .installed ? L10n.text("The selected languages are ready") : L10n.text("Check readiness in System Language Download"),
                           systemImage: route.status == .installed ? "checkmark.circle" : "arrow.down.circle")
                 } else {
                     Text(L10n.text("Ready for %1$@: %2$@ source languages", String(describing: model.target.title), String(describing: languages.sourceLanguages.filter { languages.route(from: $0, to: model.target)?.status == .installed }.count)))
