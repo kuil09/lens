@@ -6,6 +6,8 @@ Review date: 2026-09-15. Baseline `70476a7`, beta.3/build 9. Local revision: bet
 
 Subsequent separate authorization requested a local beta.4/build 10 DMG and a consolidated source-history push. See [package notes](releases/v0.1.0-beta.4.md). The runtime evidence below remains the build-10 UX audit, not a claim of new full-screen/input acceptance or replacement of the published beta.3 assets.
 
+A later explicit publication request replaced the beta.3 downloads with that verified beta.4 DMG. Statements below about preserved beta.3 assets describe the audit's original scope, not the current release page.
+
 Preserve the existing `dev.local.lens` identity and local signer, Korean → Japanese selection, save-folder bookmark/default policy, installed-language policy, export accumulation, and system-authentication handoff. The audit used the installed ordinary-permission state, not a simulated first user. Automatic tests with isolated defaults cover missing grants and incomplete onboarding separately.
 
 ## Prioritized findings

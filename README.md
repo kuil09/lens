@@ -4,11 +4,11 @@
 
 Translate text where you see it on your Mac. Place a resizable lens over a document, website, or app to display translations near the original text, using Vision OCR and Apple Translation on-device.
 
-**Development preview: [v0.1.0-beta.3](https://github.com/kuil09/lens/releases/tag/v0.1.0-beta.3), app 0.1.0 (build 9).** Download the DMG and its SHA-256 sidecar from the release. The app is **Developer ID signed but not notarized**. It is intended for developers and testers; Gatekeeper may prevent opening a downloaded copy. Building from source is an alternative. Do not disable macOS security protections. Formal whole-runtime acceptance, translation quality, and end-to-end performance remain incomplete.
+**Development preview: [v0.1.0-beta.4](https://github.com/kuil09/lens/releases/tag/v0.1.0-beta.4), app 0.1.0 (build 10).** Download the DMG and its SHA-256 sidecar from the release. The app is **Developer ID signed but not notarized**. It is intended for developers and testers; Gatekeeper may prevent opening a downloaded copy. Building from source is an alternative. Do not disable macOS security protections. Formal whole-runtime acceptance, translation quality, and end-to-end performance remain incomplete.
 
-**Current source and local package: 0.1.0-beta.4 (build 10), not published as a GitHub release.** Capture confirmation, a toolbar save-folder shortcut, and window-return/minimization refinements are described in the [capture and window UX review](docs/ux-capture-and-windows.md). See [beta.4 package notes](docs/releases/v0.1.0-beta.4.md) for artifact verification. These changes are **not** in the published beta.3/build 9 DMG.
+Capture confirmation, a toolbar save-folder shortcut, and window-return/minimization refinements are described in the [capture and window UX review](docs/ux-capture-and-windows.md). See [beta.4 release notes](docs/releases/v0.1.0-beta.4.md) for artifact verification. This download replaces beta.3/build 9; its source tag remains available for historical reference.
 
-The published beta.3 release retains the development identifier `dev.local.lens` and includes [region-adaptive backoff](docs/adaptive-backoff.md) and [context/visibility separation with an interactive click-through header](docs/context-and-input.md). Native click-through input delivery still requires manual acceptance. Optional [machine-local signing](docs/development.md#stable-local-signing) preserves code identity across rebuilds; fresh checkouts default to ad-hoc signing. The planned commercial distribution is a **paid Mac App Store one-time purchase, with no subscriptions**. Store implementation, signing, and submission are deferred; see [distribution direction and status](docs/distribution.md).
+The published release retains the development identifier `dev.local.lens` and includes [region-adaptive backoff](docs/adaptive-backoff.md) and [context/visibility separation with an interactive click-through header](docs/context-and-input.md). Native click-through input delivery still requires manual acceptance. Optional [machine-local signing](docs/development.md#stable-local-signing) preserves code identity across rebuilds; fresh checkouts default to ad-hoc signing. The planned commercial distribution is a **paid Mac App Store one-time purchase, with no subscriptions**. Store implementation, signing, and submission are deferred; see [distribution direction and status](docs/distribution.md).
 
 ## Get started
 
@@ -34,7 +34,7 @@ Images and silent videos are saved only when requested to the selected shared fo
 - [UI localization](docs/localization.md): supported interface languages, contributor workflow, and recorded checks.
 - [Distribution](docs/distribution.md): planned purchase model, current artifact status, and withdrawn notarization history.
 - [Release checklist and manual acceptance](docs/releasing.md), with [current evidence and remaining limitations](docs/context-and-input.md).
-- [Beta.3 release notes](docs/releases/v0.1.0-beta.3.md). Earlier release notes remain in `docs/releases/` as historical evidence; their download assets and tags have been retired.
+- [Beta.4 release notes](docs/releases/v0.1.0-beta.4.md). Earlier notes remain in `docs/releases/` as historical evidence; old download assets were retired, while the beta.3 source tag is retained.
 - [Changelog](CHANGELOG.md) and [security reporting](SECURITY.md).
 
 Horizontal text is the current focus; vertical writing and game-specific optimization are out of scope. Offline use, language-download recovery, multiple displays, and sustained operation still need formal runtime acceptance.

@@ -1,12 +1,12 @@
 # Changelog
 
-## 0.1.0-beta.4 — 2026-09-15 (build 10, local package)
+## 0.1.0-beta.4 — 2026-09-15 (build 10)
 
 - Successful PNG saves replace the header camera with a localized checkmark for 1.5 seconds. A new attempt clears it, and stale timers cannot erase a newer success. Recording state is independent.
 - Open the current shared save folder directly from the toolbar, File menu, or menu-bar item, including while paused or locked. Missing custom folders and Finder failures offer save-settings recovery without silently changing the destination.
 - Explicit Show Lens now restores keyboard focus; minimize hides both panels and pauses capture/finalizes recording, while restoration does not restart capture. Reader, language-pack, and help windows explicitly deminiaturize when reopened.
 - Preserve existing overlay Spaces eligibility and disallow independent header tiling. Saving/unavailable tooltips and click-through help explain the next action. The permission-return guide now observes installed-language readiness directly instead of retaining stale setup copy. See the [UX review and verification boundaries](docs/ux-capture-and-windows.md).
-- Local Developer ID signed, nonnotarized DMG; source history consolidated into one current baseline. The beta.3 tag and GitHub download assets remain unchanged. See [package notes](docs/releases/v0.1.0-beta.4.md).
+- Developer ID signed, nonnotarized DMG; source history consolidated into one baseline. Separately authorized publication replaces the beta.3 GitHub downloads; the beta.3 source tag is retained. See [release notes](docs/releases/v0.1.0-beta.4.md).
 
 ## 0.1.0-beta.3 — 2026-09-15 (build 9)
 
