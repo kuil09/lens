@@ -89,10 +89,12 @@ build() {
     xcodebuild -project "$ROOT/Lens.xcodeproj" -scheme Lens -configuration Release \
         -destination 'generic/platform=macOS' -derivedDataPath "$state/build" \
         CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$identity" DEVELOPMENT_TEAM="$LENS_TEAM_ID" \
-        PRODUCT_BUNDLE_IDENTIFIER=dev.local.lens ENABLE_HARDENED_RUNTIME=YES \
+        PRODUCT_BUNDLE_IDENTIFIER=dev.local.lens ENABLE_HARDENED_RUNTIME=YES CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
         OTHER_CODE_SIGN_FLAGS="--timestamp --keychain $keychain" ARCHS=arm64 build
     app="$state/build/Build/Products/Release/Lens.app"
     codesign --verify --deep --strict "$app"
+    # Validate the signed binary, not only build settings, before any submission.
+    codesign --display --entitlements - "$app" | python3 "$ROOT/scripts/notary-result.py" entitlements
     details=$(codesign --display --verbose=4 "$app" 2>&1)
     printf '%s\n' "$details" | grep -qx "TeamIdentifier=$LENS_TEAM_ID"
     printf '%s\n' "$details" | grep -q '^Authority=Developer ID Application:'

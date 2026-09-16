@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import os
+import plistlib
 from pathlib import Path
 import subprocess
 import tempfile
@@ -15,6 +16,37 @@ ID = "12345678-1234-1234-1234-123456789abc"
 
 
 class NotaryMetadataTests(unittest.TestCase):
+    def test_distribution_entitlements_reject_debugger_access(self):
+        for value in [True, 1, 0, "true", "false", "YES", ""]:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                notary.distribution_entitlements(plistlib.dumps({"com.apple.security.get-task-allow": value}))
+
+    def test_distribution_entitlements_allow_absent_or_boolean_false_only(self):
+        for data in [b"", plistlib.dumps({}),
+                     plistlib.dumps({"com.apple.security.get-task-allow": False}),
+                     plistlib.dumps({"com.apple.security.app-sandbox": True})]:
+            with self.subTest(data=data):
+                notary.distribution_entitlements(data)
+
+    def test_distribution_entitlements_reject_malformed_input(self):
+        for data in [b"not a plist", plistlib.dumps([]), plistlib.dumps("false")]:
+            with self.subTest(data=data), self.assertRaises(ValueError):
+                notary.distribution_entitlements(data)
+
+    def test_entitlement_cli_fails_without_echoing_input(self):
+        for payload, expected in [(plistlib.dumps({"com.apple.security.get-task-allow": True}), 1),
+                                  (b"UNTRUSTED-INPUT", 1), (b"", 0)]:
+            result = subprocess.run(["python3", str(ROOT / "scripts/notary-result.py"), "entitlements"],
+                                    input=payload, capture_output=True)
+            self.assertEqual(result.returncode, expected)
+            self.assertNotIn(b"UNTRUSTED-INPUT", result.stdout + result.stderr)
+
+    def test_ci_disables_injection_and_checks_binary_before_submission(self):
+        script = (ROOT / "scripts/ci-notarize.sh").read_text()
+        self.assertIn("CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO", script)
+        self.assertLess(script.index('codesign --display --entitlements - "$app"'),
+                        script.index('submit "$state/app.zip" app'))
+
     def test_only_accepted_matching_submission_is_approved(self):
         self.assertEqual(notary.accepted({"id": ID, "status": "Accepted"}, ID), ID)
         for status in ["In Progress", "Invalid", "Rejected", "accepted", None]:

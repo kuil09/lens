@@ -1,5 +1,6 @@
 """Validate notarytool output; never emit credentials or unrestricted service logs."""
 import json
+import plistlib
 import re
 import sys
 from pathlib import Path
@@ -28,10 +29,22 @@ def signing_identity(text, team):
     return matches[0]
 
 
+def distribution_entitlements(data):
+    # codesign emits no plist when the executable has no entitlements.
+    value = plistlib.loads(data) if data.strip() else {}
+    if not isinstance(value, dict):
+        raise ValueError("Expected an entitlement dictionary")
+    if value.get("com.apple.security.get-task-allow", False) is not False:
+        raise ValueError("Distribution binaries must not allow debugger attachment")
+
+
 def main(args):
     command = args[0]
     if command == "identity":
         print(signing_identity(sys.stdin.read(), args[1]))
+    elif command == "entitlements":
+        distribution_entitlements(sys.stdin.buffer.read())
+        print("Distribution entitlements verified: debugger attachment disabled.")
     elif command in ("id", "accepted"):
         value = json.loads(Path(args[1]).read_text())
         print(submission_id(value) if command == "id" else accepted(value, args[2]))
@@ -48,5 +61,5 @@ def main(args):
 if __name__ == "__main__":
     try:
         main(sys.argv[1:])
-    except (ValueError, KeyError, IndexError, OSError):
+    except (ValueError, KeyError, IndexError, OSError, plistlib.InvalidFileException):
         sys.exit("Notarization metadata validation failed; no deliverable is approved.")
