@@ -21,7 +21,7 @@ final class LensModel: ObservableObject {
     }
     @Published private(set) var target: LensLanguage
     @Published var opacity: Double { didSet { defaults.set(opacity, forKey: "opacity"); surface?.overlay.maskOpacity = opacity } }
-    @Published var locked = false
+    @Published var locked = false { didSet { surface?.overlay.interactionEnabled = !locked } }
     @Published var status = L10n.text("Prepare language packs before starting.")
     @Published var running = false { didSet { surface?.setTranslationActive(running) } }
     @Published var permissionNeeded = false
@@ -35,6 +35,7 @@ final class LensModel: ObservableObject {
     weak var surface: LensSurface?
     let capture = ScreenCapture()
     let languages: LanguageCatalog
+    let reading = TranslationReading()
     private let translator: any TranslationEngine
     private lazy var pipeline = RegionalTranslationPipeline(translator: translator)
     private let defaults: UserDefaults
@@ -63,6 +64,7 @@ final class LensModel: ObservableObject {
         pipeline.onDisplay = { [weak self] display in
             self?.translations = display; self?.surface?.overlay.translations = display
         }
+        pipeline.onReading = { [weak self] sources, epoch in self?.reading.receive(sources, epoch: epoch) }
         pipeline.onStatus = { [weak self] status in self?.status = status }
         pipeline.onLatency = { [weak self] elapsed in
             self?.translationSamples.append(elapsed); self?.updateMetrics()
@@ -147,6 +149,7 @@ final class LensModel: ObservableObject {
     }
     func attach(_ view: LensSurface) {
         surface = view; view.setTranslationActive(running); view.overlay.maskOpacity = opacity
+        view.overlay.interactionEnabled = !locked
         view.canvas.onPresented = { [weak self] latency in self?.renderSamples.append(latency); self?.updateMetrics() }
     }
     func invalidate() {

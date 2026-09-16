@@ -49,6 +49,8 @@ import AppKit
         let area = NSScreen.main!.visibleFrame
         window = NSWindow(contentRect: CGRect(x: area.midX - 500, y: area.midY - 350, width: 1000, height: 700), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         window.title = "Lens Input Fixture"
+        // Keep synthetic content above ordinary apps but below Lens's floating panels.
+        window.level = NSWindow.Level(rawValue: NSWindow.Level.floating.rawValue - 1)
         let view = InputCanvas(frame: CGRect(x: 0, y: 0, width: 1000, height: 700))
         window.contentView = view; window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)

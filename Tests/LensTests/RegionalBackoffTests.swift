@@ -112,6 +112,40 @@ private func paragraph(_ text: String, bounds: CGRect = stableBounds) -> TextBlo
     #expect(h.pipeline.diagnostics.reusedTranslations == 1)
 }
 
+@Test @MainActor func readerSnapshotSurvivesPixelMaskAndOCRWhileChangedTextWaitsForExplicitApply() async {
+    let h = Harness(), reading = TranslationReading()
+    h.pipeline.onReading = { sources, epoch in reading.receive(sources, epoch: epoch) }
+    await h.initial(); reading.open()
+    let original = reading.rows
+    h.feed(at: 0.4, sample([35 * 128 + 15]))
+    #expect(h.pipeline.display.isEmpty)
+    #expect(reading.rows == original)
+    h.blocks = [paragraph("Delete the document now.")]
+    h.time.value = 0.53
+    #expect(await h.pipeline.recognizeNext())
+    reading.apply()
+    #expect(reading.rows.first?.isPrevious == true)
+    #expect(await h.pipeline.translateNext())
+    #expect(reading.rows.first?.text == original.first?.text)
+    reading.apply()
+    #expect(reading.rows.first?.text == "translated: Delete the document now.")
+    #expect(reading.rows.first?.id == original.first?.id)
+}
+
+@Test @MainActor func unstableOCRIsNotAConfirmedReaderDeletion() async {
+    let h = Harness(), reading = TranslationReading()
+    h.pipeline.onReading = { sources, epoch in reading.receive(sources, epoch: epoch) }
+    await h.initial(); reading.open()
+    let original = reading.rows
+    h.feed(at: 0.4, sample([35 * 128 + 15])); h.time.value = 0.53
+    h.ocrAction = { h.feed(at: 0.6, sample()) }
+    #expect(await h.pipeline.recognizeNext())
+    reading.apply()
+    #expect(reading.rows.first?.text == original.first?.text)
+    #expect(reading.rows.first?.isPrevious == true)
+    h.ocrAction = nil
+}
+
 @Test @MainActor func wrappedContextIsOneRequestAndMaskHidesItsEntireReferenceTranslation() async throws {
     let h = Harness()
     let lines = [
@@ -314,19 +348,21 @@ private func paragraph(_ text: String, bounds: CGRect = stableBounds) -> TextBlo
     let time = ManualTime(), engine = ProbeEngine()
     let pipeline = RegionalTranslationPipeline(translator: engine, automatic: false, now: { time.value })
     let context = RegionalTranslationPipeline.Context(source: .english, target: .korean, languages: [.english])
-    pipeline.receive(try frame(state: "A", critical: "Do not delete 12 files."), context: context)
+    // Use confidently identifiable prose here. Short ambiguous labels are tested
+    // separately; explicit source no longer forces their language classification.
+    pipeline.receive(try frame(state: "A", critical: "Please do not delete the remaining 12 files."), context: context)
     time.value = 0.13; #expect(await pipeline.recognizeNext())
     while await pipeline.translateNext() { }
     let body = try #require(pipeline.display.first { $0.block.text.contains("keep this document") })
     let critical = try #require(pipeline.display.first { $0.block.text.contains("12 files") })
     time.value = 0.4
-    pipeline.receive(try frame(state: "B", critical: "Do not delete 12 files."), context: context)
+    pipeline.receive(try frame(state: "B", critical: "Please do not delete the remaining 12 files."), context: context)
     #expect(pipeline.display.contains { $0.id == body.id })
     #expect(pipeline.display.contains { $0.id == critical.id })
     time.value = 0.53; #expect(await pipeline.recognizeNext())
     while await pipeline.translateNext() { }
     time.value = 1
-    pipeline.receive(try frame(state: "B", critical: "Delete 13 files."), context: context)
+    pipeline.receive(try frame(state: "B", critical: "Please delete the remaining 13 files now."), context: context)
     #expect(pipeline.display.contains { $0.id == body.id })
     #expect(!pipeline.display.contains { $0.id == critical.id })
     time.value = 1.13; #expect(await pipeline.recognizeNext())

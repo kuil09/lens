@@ -1,15 +1,18 @@
 import AppKit
 
-/// Two disjoint WindowServer input regions. Only the body ignores mouse events;
+/// Disjoint WindowServer input regions. Only the body ignores mouse events;
 /// no hit-test trick, global event tap, forwarding, or event reinjection is used.
 @MainActor final class LensBodyPanel: NSPanel {
-    override var canBecomeKey: Bool { false }
+    var allowsTextInteraction = true
+    override var canBecomeKey: Bool { allowsTextInteraction }
     override var canBecomeMain: Bool { false }
 }
 
 @MainActor final class LensPanel: NSPanel, NSWindowDelegate {
     var interactionSuspended = false
     private(set) var bodyPanel: LensBodyPanel?
+    private(set) var resizePanels: [LensResizePanel] = []
+    private(set) var edgeResizing = false
     private(set) var synchronizingBody = false
     var onBodyArrangement: ((Bool) -> Void)?
     var onMinimize: (() -> Void)?
@@ -39,11 +42,14 @@ import AppKit
         body.contentMinSize = CGSize(width: 320, height: 240)
         body.contentView = surface; body.delegate = self
         bodyPanel = body
+        resizePanels = LensResizeSide.allCases.map { LensResizePanel(side: $0, owner: self) }
         synchronizeBody()
     }
     func setBodyClickThrough(_ enabled: Bool) {
         ignoresMouseEvents = false
         bodyPanel?.ignoresMouseEvents = enabled
+        bodyPanel?.allowsTextInteraction = !enabled
+        (bodyPanel?.contentView as? LensSurface)?.overlay.interactionEnabled = !enabled
     }
     func synchronizeBody() {
         guard let bodyPanel, !synchronizingBody else { return }
@@ -52,13 +58,46 @@ import AppKit
             width: frame.width, height: bodyHeight), display: true)
         bodyPanel.level = level
         synchronizingBody = false
+        synchronizeEdges()
+    }
+    private func synchronizeEdges() {
+        for panel in resizePanels {
+            panel.setFrame(LensResizeGeometry.frame(side: panel.side, pair: pairFrame), display: true)
+            panel.level = level; panel.collectionBehavior = collectionBehavior
+            if let view = panel.contentView { panel.invalidateCursorRects(for: view); view.needsDisplay = true }
+        }
+    }
+    func beginEdgeResize() {
+        guard !interactionSuspended else { return }
+        edgeResizing = true
+        (bodyPanel?.contentView as? LensSurface)?.overlay.dismissPopover()
+        onBodyArrangement?(false)
+    }
+    func resizePair(to rect: CGRect) {
+        guard !interactionSuspended else { return }
+        synchronizingBody = true
+        bodyHeight = rect.height - frame.height
+        super.setFrame(CGRect(x: rect.minX, y: rect.maxY - frame.height, width: rect.width, height: frame.height), display: true)
+        synchronizingBody = false
+        synchronizeBody()
+    }
+    func endEdgeResize() {
+        guard edgeResizing else { return }
+        edgeResizing = false
+        if isVisible && !interactionSuspended { onBodyArrangement?(true) }
+    }
+    private func hideAuxiliaries(_ sender: Any?) {
+        edgeResizing = false
+        (bodyPanel?.contentView as? LensSurface)?.overlay.dismissPopover()
+        resizePanels.forEach { $0.orderOut(sender) }
+        bodyPanel?.orderOut(sender)
     }
     override func setFrame(_ frameRect: NSRect, display flag: Bool) {
         super.setFrame(frameRect, display: flag)
         synchronizeBody()
     }
     override var level: NSWindow.Level {
-        didSet { bodyPanel?.level = level }
+        didSet { bodyPanel?.level = level; resizePanels.forEach { $0.level = level } }
     }
     override func orderFrontRegardless() {
         guard !interactionSuspended else { return }
@@ -71,10 +110,14 @@ import AppKit
         // Keep chrome as the frontmost accessible control window, not the
         // non-key body. The rectangles are disjoint so no content is occluded.
         super.orderFrontRegardless()
+        for panel in resizePanels {
+            if panel.parent !== self { addChildWindow(panel, ordered: .above) }
+            panel.orderFrontRegardless()
+        }
     }
     override func miniaturize(_ sender: Any?) {
         onMinimize?()
-        bodyPanel?.orderOut(sender)
+        hideAuxiliaries(sender)
         super.miniaturize(sender)
     }
     override func deminiaturize(_ sender: Any?) {
@@ -82,15 +125,15 @@ import AppKit
         if !interactionSuspended { orderFrontRegardless() }
     }
     override func orderOut(_ sender: Any?) {
-        bodyPanel?.orderOut(sender)
+        hideAuxiliaries(sender)
         super.orderOut(sender)
     }
     override func close() {
-        bodyPanel?.orderOut(nil)
+        hideAuxiliaries(nil)
         super.close()
     }
     func clampPair(to area: CGRect) {
-        let pair = LensGeometry.clamped(pairFrame, to: area)
+        let pair = LensGeometry.clamped(pairFrame, to: area.insetBy(dx: LensResizeGeometry.thickness, dy: LensResizeGeometry.thickness))
         bodyHeight = max(1, pair.height - frame.height)
         setFrame(CGRect(x: pair.minX, y: pair.maxY - frame.height, width: pair.width, height: frame.height), display: true)
     }
@@ -112,6 +155,7 @@ import AppKit
         super.setFrame(CGRect(x: bodyPanel.frame.minX, y: bodyPanel.frame.maxY,
             width: bodyPanel.frame.width, height: frame.height), display: true)
         synchronizingBody = false
+        synchronizeEdges()
     }
     func windowDidEndLiveResize(_ notification: Notification) { onBodyArrangement?(true) }
 }

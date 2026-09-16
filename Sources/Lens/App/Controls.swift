@@ -221,6 +221,7 @@ struct LensControls: View {
 
 struct TranslationReader: View {
     @ObservedObject var model: LensModel
+    @ObservedObject var reading: TranslationReading
     let onShowLens: () -> Void
     let onSettings: () -> Void
     @State private var showOriginal = true
@@ -230,23 +231,33 @@ struct TranslationReader: View {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L10n.text("Full Translation")).font(.headline)
-                    Text(L10n.text("Translations: %1$@", String(describing: model.translations.count))).font(.caption).foregroundStyle(.secondary)
+                    Text(L10n.text("Translations: %1$@", String(describing: reading.rows.count))).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
                 HStack(spacing: 14) {
                     Toggle(L10n.text("Show Original"), isOn: $showOriginal).toggleStyle(.checkbox)
                     Button {
                         NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(model.translations.map(\.text).joined(separator: "\n\n"), forType: .string)
+                        NSPasteboard.general.setString(reading.rows.map(\.text).joined(separator: "\n\n"), forType: .string)
                     } label: { Label(L10n.text("Copy All"), systemImage: "doc.on.doc") }
                     .buttonStyle(.borderless)
-                    .disabled(model.translations.isEmpty)
+                    .disabled(reading.rows.isEmpty)
                 }
                 .padding(.horizontal, 16).padding(.vertical, 12)
                 .modifier(LensGlassControlGroup())
             }.padding(16)
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(L10n.text(reading.previousScreen ? "Translation from a previous screen" : "Showing your last applied translation"))
+                    if let date = reading.appliedAt { Text(date, style: .time) }
+                }.font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Button(L10n.text("Apply New Translations")) { reading.apply() }
+                    .disabled(!reading.hasUpdates)
+                    .help(L10n.text("Reading stays fixed until you apply new translations."))
+            }.padding(.horizontal, 16).padding(.bottom, 12)
             Divider()
-            if model.translations.isEmpty {
+            if reading.rows.isEmpty {
                 ContentUnavailableView {
                     Label(L10n.text("No translations yet"), systemImage: "character.bubble")
                 } description: {
@@ -256,24 +267,7 @@ struct TranslationReader: View {
                         .modifier(LensGlassAction(prominent: true))
                 }
             } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 24) {
-                        ForEach(model.translations) { item in
-                            VStack(alignment: .leading, spacing: 8) {
-                                if showOriginal { Text(item.block.text).foregroundStyle(.secondary) }
-                                Text(item.text).font(.body)
-                            }.frame(maxWidth: .infinity, alignment: .leading)
-                                .textSelection(.enabled)
-                                .contextMenu {
-                                    Button(L10n.text("Copy Translation")) {
-                                        NSPasteboard.general.clearContents()
-                                        NSPasteboard.general.setString(item.text, forType: .string)
-                                    }
-                                }
-                            Divider()
-                        }
-                    }.padding(24)
-                }
+                ReadingDocumentView(rows: reading.rows, showOriginal: showOriginal)
             }
         }.background(Color(nsColor: .windowBackgroundColor))
     }
@@ -286,6 +280,9 @@ struct LensHelpView: View {
                 Text(L10n.text("1. Prepare screen access and language packs in settings."))
                 Text(L10n.text("2. Place the lens over text and adjust its size."))
                 Text(L10n.text("3. Enable click-through to interact with the app underneath."))
+                Text(L10n.text("Only the body passes clicks and scrolling through. The toolbar and resize edges stay interactive."))
+                Text(L10n.text("Turn click-through off, then click a truncated translation to read it in a popover."))
+                Text(L10n.text("Reading stays fixed until you apply new translations."))
             }
             Section(L10n.text("Keyboard Shortcuts")) {
                 LabeledContent(L10n.text("Settings"), value: "⌘,")

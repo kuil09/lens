@@ -59,7 +59,9 @@ import Testing
             block: TextBlock(text: "You can read the entire translation here, even when it does not fit inside the lens.",
                 bounds: .zero, language: .english, confidence: 1),
             text: "렌즈 안에 모두 표시되지 않는 긴 번역도 이 창에서 끝까지 읽을 수 있습니다. 원문을 숨기거나 필요한 번역만 복사할 수도 있습니다.", background: .white)]
-        let reader = NSHostingView(rootView: TranslationReader(model: model, onShowLens: {}, onSettings: {})
+        model.reading.receive(model.translations.map { .init(block: $0.block, text: $0.text, isCurrent: true) }, epoch: 0)
+        model.reading.open()
+        let reader = NSHostingView(rootView: TranslationReader(model: model, reading: model.reading, onShowLens: {}, onSettings: {})
             .environment(\.colorScheme, dark ? .dark : .light))
         reader.appearance = appearance
         reader.frame = CGRect(x: 0, y: 0, width: 440, height: 500)

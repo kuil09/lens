@@ -215,6 +215,7 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
         let view = submenu(L10n.text("View"))
         command(view, L10n.text("Show Lens"), #selector(showLens), "l", target: self)
         command(view, L10n.text("Full Translation"), #selector(showReader), "t", target: self)
+        command(view, L10n.text("Read Truncated Translation"), #selector(focusOverflow), "t", target: self, modifiers: [.command, .shift])
         view.addItem(.separator())
         command(view, L10n.text("Start Translation"), #selector(toggle), "r", target: self)
         command(view, L10n.text("Pass Through Clicks and Scrolling"), #selector(toggleLock), "k", target: self)
@@ -424,6 +425,9 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
         NSApp.activate(ignoringOtherApps: true)
     }
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(focusOverflow) {
+            return !model.locked && model.running && surface.overlay.layouts.contains(where: \.isTruncated)
+        }
         if menuItem.action == #selector(toggle) {
             menuItem.title = model.running ? L10n.text("Pause Translation") : (model.permissionNeeded ? L10n.text("Check Screen Recording Access…") : L10n.text("Start Translation"))
             return true
@@ -541,6 +545,9 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
         restart()
     }
     @objc private func toggleLock() { model.locked.toggle(); setLocked() }
+    @objc private func focusOverflow() { surface.overlay.focusFirstOverflow() }
+    func applicationDidResignActive(_ notification: Notification) { surface.overlay.dismissPopover() }
+    func applicationDidHide(_ notification: Notification) { surface.overlay.dismissPopover() }
     private func setLocked() {
         lens.setBodyClickThrough(model.locked)
         updateStatusItem()
@@ -668,11 +675,12 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
         preparation = window; NSApp.activate(ignoringOtherApps: true)
     }
     @objc private func showReader() {
+        if reader?.isVisible != true && reader?.isMiniaturized != true { model.reading.open() }
         if reader == nil {
             let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 600, height: 620), styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
             window.title = L10n.text("Full Translation"); window.isReleasedWhenClosed = false
             window.contentMinSize = CGSize(width: 440, height: 360)
-            window.contentView = NSHostingView(rootView: TranslationReader(model: model,
+            window.contentView = NSHostingView(rootView: TranslationReader(model: model, reading: model.reading,
                 onShowLens: { [weak self] in self?.showLens() }, onSettings: { [weak self] in self?.showSettings() }))
             window.delegate = self; window.tabbingMode = .disallowed
             window.center(); reader = window

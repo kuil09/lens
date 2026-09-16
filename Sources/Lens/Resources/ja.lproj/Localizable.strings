@@ -265,3 +265,13 @@
 "Could not check translation languages. Try again." = "翻訳言語を確認できませんでした。もう一度お試しください。";
 "Checking languages. Turn off to cancel starting translation." = "言語を確認しています。オフにすると翻訳の開始を取り消します。";
 "Cancel Start" = "開始を取り消す";
+"Previous translation" = "前の翻訳";
+"Translation from a previous screen" = "前の画面の翻訳";
+"Showing your last applied translation" = "最後に反映した翻訳を表示しています";
+"Apply New Translations" = "新しい翻訳を反映";
+"Reading stays fixed until you apply new translations." = "新しい翻訳を反映するまで、表示内容は変わりません。";
+"Only the body passes clicks and scrolling through. The toolbar and resize edges stay interactive." = "本文だけがクリックとスクロールを通過させます。ツールバーとサイズ変更の枠は操作できます。";
+"Turn click-through off, then click a truncated translation to read it in a popover." = "クリックの通過をオフにして、省略された翻訳をクリックすると全文を表示します。";
+"Read Full Translation" = "翻訳の全文を表示";
+"Read Truncated Translation" = "省略された翻訳を表示";
+"Resize Lens" = "レンズのサイズを変更";

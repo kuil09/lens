@@ -265,3 +265,13 @@
 "Could not check translation languages. Try again." = "Could not check translation languages. Try again.";
 "Checking languages. Turn off to cancel starting translation." = "Checking languages. Turn off to cancel starting translation.";
 "Cancel Start" = "Cancel Start";
+"Previous translation" = "Previous translation";
+"Translation from a previous screen" = "Translation from a previous screen";
+"Showing your last applied translation" = "Showing your last applied translation";
+"Apply New Translations" = "Apply New Translations";
+"Reading stays fixed until you apply new translations." = "Reading stays fixed until you apply new translations.";
+"Only the body passes clicks and scrolling through. The toolbar and resize edges stay interactive." = "Only the body passes clicks and scrolling through. The toolbar and resize edges stay interactive.";
+"Turn click-through off, then click a truncated translation to read it in a popover." = "Turn click-through off, then click a truncated translation to read it in a popover.";
+"Read Full Translation" = "Read Full Translation";
+"Read Truncated Translation" = "Read Truncated Translation";
+"Resize Lens" = "Resize Lens";

@@ -13,6 +13,7 @@ private func line(_ text: String, x: CGFloat = 0.1, y: CGFloat = 0.8,
 @Test func recognitionLanguageValidation() throws {
     let supported = ["ko-KR", "ja-JP", "en-US", "fr-FR"]
     #expect(try OCRService.recognitionLanguages(supported: supported, source: nil) == supported)
+    #expect(Set(try OCRService.recognitionLanguages(supported: supported, source: .korean)) == Set(supported))
     #expect(try OCRService.recognitionLanguages(supported: ["ja-JP"], source: .japanese) == ["ja-JP"])
     #expect(try OCRService.recognitionLanguages(supported: ["en-US"], source: nil) == ["en-US"])
     #expect(throws: OCRServiceError.unsupportedRecognitionLanguages(["ko"])) {
@@ -27,7 +28,9 @@ private func line(_ text: String, x: CGFloat = 0.1, y: CGFloat = 0.8,
     for text in ["OK", "Oui", "設定", "12345", "", "Привет"] {
         #expect(OCRService.detectLanguage(text) == nil)
     }
-    #expect(OCRService.detectLanguage("OK", source: .japanese) == .japanese)
+    #expect(OCRService.detectLanguage("OK", source: .japanese) == nil)
+    #expect(OCRService.detectLanguage("This is an English sentence with one 가", source: .korean) == nil)
+    #expect(OCRService.detectLanguage("한국어와日本語です", source: .korean) == nil)
     #expect(OCRService.detectLanguage("Bonjour tout le monde, comment allez vous aujourd'hui?")?.languageCode == "fr")
     #expect(OCRService.detectLanguage("这是一个中文句子")?.languageCode == "zh")
     #expect(OCRService.detectLanguage("Bonjour tout le monde, comment allez vous aujourd'hui?", languages: [.english, .korean]) == nil)
@@ -39,7 +42,7 @@ private func line(_ text: String, x: CGFloat = 0.1, y: CGFloat = 0.8,
     let result = OCRService.assignLanguages(to: lines)
     #expect(result.map(\.language) == [.japanese, .japanese, nil, nil, nil])
     #expect(result[1].id == lines[1].id)
-    #expect(OCRService.assignLanguages(to: lines, source: .korean).allSatisfy { $0.language == .korean })
+    #expect(OCRService.assignLanguages(to: lines, source: .korean).map(\.language) == result.map(\.language))
     let conflicting = [lines[0], lines[1], line("한국어 설명입니다", y: 0.70)]
     #expect(OCRService.assignLanguages(to: conflicting)[1].language == nil)
     let unknownNeighbor = [lines[0], lines[1], line("Oui", y: 0.70)]

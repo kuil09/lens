@@ -265,3 +265,13 @@
 "Could not check translation languages. Try again." = "번역 언어를 확인하지 못했습니다. 다시 시도하세요.";
 "Checking languages. Turn off to cancel starting translation." = "언어를 확인하고 있습니다. 끄면 번역 시작을 취소합니다.";
 "Cancel Start" = "시작 취소";
+"Previous translation" = "이전 번역";
+"Translation from a previous screen" = "이전 화면의 번역";
+"Showing your last applied translation" = "마지막으로 반영한 번역입니다";
+"Apply New Translations" = "새 번역 반영";
+"Reading stays fixed until you apply new translations." = "새 번역을 반영할 때까지 읽는 내용은 바뀌지 않습니다.";
+"Only the body passes clicks and scrolling through. The toolbar and resize edges stay interactive." = "본문만 클릭과 스크롤을 통과시킵니다. 상단과 크기 조절 테두리는 계속 조작할 수 있습니다.";
+"Turn click-through off, then click a truncated translation to read it in a popover." = "클릭 통과를 끄고 말줄임된 번역을 클릭하면 전문을 볼 수 있습니다.";
+"Read Full Translation" = "번역 전문 보기";
+"Read Truncated Translation" = "말줄임된 번역 보기";
+"Resize Lens" = "렌즈 크기 조절";

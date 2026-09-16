@@ -1,6 +1,7 @@
 import AppKit
 import MetalKit
 import CoreImage
+import SwiftUI
 
 @MainActor
 final class LensCanvas: MTKView, MTKViewDelegate {
@@ -71,46 +72,80 @@ struct TranslationDisplayMask {
 }
 
 @MainActor
-final class TranslationOverlay: NSView {
-    var translations: [DisplayTranslation] = [] { didSet { needsDisplay = true } }
+final class TranslationOverlay: NSView, NSPopoverDelegate {
+    var translations: [DisplayTranslation] = [] { didSet { rebuild() } }
     var maskOpacity: CGFloat = 1 { didSet { needsDisplay = true } }
+    var interactionEnabled = false { didSet { if !interactionEnabled { dismissPopover() }; rebuildButtons() } }
+    private(set) var layouts: [TranslationLayout] = []
+    private(set) var presentedID: UUID?
+    private var presentedText: String?
+    private var presentedBlock: TextBlock?
+    private var popover: NSPopover?
+    private var buttons: [UUID: TranslationOverflowButton] = [:]
     override var isOpaque: Bool { false }
-    override func hitTest(_ point: NSPoint) -> NSView? { nil }
-
-    override func draw(_ dirtyRect: NSRect) {
-        for item in translations {
-            let box = LensGeometry.localRect(item.block.bounds, size: bounds.size).insetBy(dx: -2, dy: -2).intersection(bounds)
-            guard box.width > 4, box.height > 4 else { continue }
-            item.background.withAlphaComponent(maskOpacity).setFill()
-            NSBezierPath(roundedRect: box, xRadius: 2, yRadius: 2).fill()
-            let paragraph = NSMutableParagraphStyle()
-            paragraph.lineBreakMode = .byWordWrapping
-            let rgb = item.background.usingColorSpace(.deviceRGB) ?? .white
-            let light = rgb.redComponent * 0.2126 + rgb.greenComponent * 0.7152 + rgb.blueComponent * 0.0722
-            let foreground: NSColor = light > 0.5 ? .black : .white
-            let area = box.insetBy(dx: 2, dy: 1)
-            var fontSize = min(22, max(11, box.height * 0.68))
-            var attributes: [NSAttributedString.Key: Any] = [:]
-            var measured = CGRect.zero
-            repeat {
-                attributes = [.font: NSFont.systemFont(ofSize: fontSize), .foregroundColor: foreground, .paragraphStyle: paragraph]
-                measured = (item.text as NSString).boundingRect(with: CGSize(width: area.width, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: attributes)
-                if measured.height <= area.height || fontSize <= 11 { break }
-                fontSize -= 1
-            } while true
-            if measured.height > area.height {
-                paragraph.lineBreakMode = .byTruncatingTail
-                attributes[.paragraphStyle] = paragraph
-            }
-            NSGraphicsContext.saveGraphicsState()
-            NSBezierPath(rect: area).addClip()
-            (item.text as NSString).draw(with: area, options: [.usesLineFragmentOrigin, .usesFontLeading, .truncatesLastVisibleLine], attributes: attributes)
-            NSGraphicsContext.restoreGraphicsState()
-            if measured.height > area.height {
-                NSColor.controlAccentColor.setFill()
-                NSBezierPath(ovalIn: CGRect(x: box.maxX - 5, y: box.minY, width: 5, height: 5)).fill()
-            }
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard interactionEnabled, !isHidden else { return nil }
+        let local = convert(point, from: superview)
+        return subviews.reversed().first { !$0.isHidden && $0.frame.contains(local) }
+    }
+    override func setFrameSize(_ newSize: NSSize) {
+        if frame.size != newSize { dismissPopover() }
+        super.setFrameSize(newSize); rebuild()
+    }
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        if newWindow !== window { dismissPopover() }
+        super.viewWillMove(toWindow: newWindow)
+    }
+    private func rebuild() {
+        if let id = presentedID, !translations.contains(where: { $0.id == id && $0.text == presentedText && $0.block == presentedBlock }) {
+            dismissPopover()
         }
+        layouts = translations.compactMap { TranslationLayout(item: $0, size: bounds.size) }
+        rebuildButtons(); needsDisplay = true
+    }
+    private func rebuildButtons() {
+        let overflow = interactionEnabled ? layouts.filter(\.isTruncated) : []
+        let ids = Set(overflow.map { $0.item.id })
+        for id in Array(buttons.keys) where !ids.contains(id) { buttons.removeValue(forKey: id)?.removeFromSuperview() }
+        for layout in overflow {
+            let id = layout.item.id
+            let button = buttons[id] ?? {
+                let button = TranslationOverflowButton()
+                button.activate = { [weak self] in self?.showPopover(for: id) }
+                addSubview(button); buttons[id] = button
+                return button
+            }()
+            button.frame = layout.box
+            button.setAccessibilityValue(layout.item.text)
+        }
+    }
+    func showPopover(for id: UUID) {
+        guard interactionEnabled, !isHidden, window?.isVisible == true,
+              let layout = layouts.first(where: { $0.item.id == id && $0.isTruncated }) else { return }
+        dismissPopover()
+        let popup = NSPopover()
+        popup.behavior = .transient; popup.animates = false; popup.delegate = self
+        let screen = window?.screen?.visibleFrame.size ?? CGSize(width: 800, height: 600)
+        popup.contentSize = CGSize(width: min(380, screen.width - 40), height: min(300, screen.height - 80))
+        popup.contentViewController = NSHostingController(rootView: TruncatedTranslationView(text: layout.item.text))
+        presentedID = id; presentedText = layout.item.text; presentedBlock = layout.item.block
+        popover = popup
+        popup.show(relativeTo: layout.box, of: self, preferredEdge: .maxX)
+    }
+    func focusFirstOverflow() {
+        guard interactionEnabled, let layout = layouts.first(where: \.isTruncated),
+              let button = buttons[layout.item.id] else { return }
+        window?.makeKey(); window?.makeFirstResponder(button)
+    }
+    func dismissPopover() {
+        popover?.close(); popover = nil; presentedID = nil; presentedText = nil; presentedBlock = nil
+    }
+    func popoverDidClose(_ notification: Notification) {
+        guard notification.object as? NSPopover === popover else { return }
+        popover = nil; presentedID = nil; presentedText = nil; presentedBlock = nil
+    }
+    override func draw(_ dirtyRect: NSRect) {
+        for layout in layouts { layout.draw(opacity: maskOpacity) }
     }
 }
 
@@ -152,6 +187,7 @@ final class LensSurface: NSView {
         border.needsDisplay = true
     }
     func setTranslationActive(_ active: Bool, arranging: Bool = false) {
+        if !active { overlay.dismissPopover() }
         // The canvas still receives frames for OCR/export, but never reproduces them on screen.
         canvas.showsCapturedImage = false
         canvas.isHidden = !active

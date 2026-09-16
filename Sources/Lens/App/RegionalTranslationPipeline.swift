@@ -48,10 +48,11 @@ import CoreImage
     private(set) var diagnostics = Diagnostics()
     private(set) var display: [DisplayTranslation] = []
     /// Completed reference translations survive local invalidation. Only the
-    /// visibility mask is applied to the live overlay, reader, PNG, and MP4 paths.
+    /// visibility mask is applied to the live overlay, PNG, and MP4 paths, not the reader.
     private(set) var referenceLayer: [DisplayTranslation] = []
     private(set) var displayMask = TranslationDisplayMask()
     var onDisplay: (([DisplayTranslation]) -> Void)?
+    var onReading: (([ReadingSource], UInt64) -> Void)?
     var onStatus: ((String) -> Void)?
     var onLatency: ((Double) -> Void)?
     var recordCount: Int { records.count }
@@ -121,6 +122,7 @@ import CoreImage
         displayMask.hiddenIDs = Set(records.filter { !$0.visible || !valid($0) }.map { $0.block.id })
         display = displayMask.applying(to: referenceLayer)
         onDisplay?(display)
+        onReading?(records.map { .init(block: $0.block, text: $0.translated, isCurrent: $0.visible && valid($0)) }, scheduler.epoch)
     }
     private func startWorkers() {
         guard automatic, context != nil else { return }
@@ -164,7 +166,7 @@ import CoreImage
             records.removeAll { record in
                 !scheduler.cells(intersecting: record.block.bounds).isDisjoint(with: selected) &&
                 scheduler.canInspect(record.block.bounds, selected: selected) &&
-                (!record.visible || scheduler.unchanged(record.block.bounds, since: generation, epoch: epoch))
+                scheduler.unchanged(record.block.bounds, since: generation, epoch: epoch)
             }
             for block in observed {
                 guard scheduler.canInspect(block.bounds, selected: selected) else { continue }
@@ -172,7 +174,7 @@ import CoreImage
                 guard unchanged(block, since: generation, epoch: epoch) else {
                     diagnostics.discardedResults += 1; scheduler.retry(cells, at: now(), sourceChanged: true); continue
                 }
-                guard let language = block.language, !language.isSameLanguage(as: context.target), block.confidence >= 0.3 else { continue }
+                guard Self.accepts(block, in: context), let language = block.language else { continue }
                 let old = previous.first { sameParagraph($0.block, block) }
                 let (r, g, b) = analysis.background(image, normalized: block.bounds)
                 let stableBlock = TextBlock(id: old?.block.id ?? block.id, text: block.text, bounds: block.bounds,
@@ -202,24 +204,16 @@ import CoreImage
 
     @discardableResult func translateNext() async -> Bool {
         guard diagnostics.activeTranslation == 0, let context else { return false }
-        let pending = records.filter { $0.needsTranslation && valid($0) }.sorted {
+        let pending = records.filter { $0.needsTranslation && valid($0) && Self.accepts($0.block, in: context) }.sorted {
             if $0.waitingSince != $1.waitingSince { return $0.waitingSince < $1.waitingSince }
             return $0.block.id.uuidString < $1.block.id.uuidString
         }
         guard !pending.isEmpty else { return false }
         
-        // Use explicitly selected source language if set; otherwise fall back to detected language (auto-detect mode)
-        let translationSource = context.source ?? pending.first?.block.language
+        let translationSource = pending.first?.block.language
         guard let language = translationSource else { return false }
         
-        // When source is explicitly set, batch all pending records (OCR already constrained to that language)
-        // When auto-detect, batch only records with the same detected language
-        let batch: [Record]
-        if context.source != nil {
-            batch = Array(pending.prefix(4))
-        } else {
-            batch = Array(pending.filter { $0.block.language == language }.prefix(4))
-        }
+        let batch = Array(pending.filter { $0.block.language == language }.prefix(4))
         for record in batch {
             if let index = records.firstIndex(where: { $0.block.id == record.block.id }) { records[index].needsTranslation = false }
             diagnostics.translationQueueWait = max(diagnostics.translationQueueWait, now() - record.waitingSince)
@@ -271,5 +265,11 @@ import CoreImage
             }
         }
         return true
+    }
+
+    static func accepts(_ block: TextBlock, in context: Context) -> Bool {
+        guard let language = block.language, block.confidence >= 0.3,
+              !language.isSameLanguage(as: context.target) else { return false }
+        return context.source.map { language.isSameLanguage(as: $0) } ?? true
     }
 }

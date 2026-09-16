@@ -33,7 +33,7 @@ import Testing
         clock = 0.13
         #expect(await pipeline.recognizeNext())
         while await pipeline.translateNext() {}
-        #expect(engine.batches.flatMap { $0 }.count == 2)
+        #expect(engine.batches.flatMap { $0 }.count == (source == nil ? 2 : 1))
         #expect(engine.batches.allSatisfy { Set($0.map(\.source)).count == 1 })
         #expect(engine.batches.count == (source == nil ? 2 : 1))
         if let source { #expect(engine.batches.flatMap { $0 }.allSatisfy { $0.source == source }) }
@@ -44,6 +44,5 @@ import Testing
 @Test func explicitOCRSourceIsAHintNotAFilterForDifferentLanguageText() {
     let text = "This is a complete sentence written in English."
     #expect(OCRService.detectLanguage(text) == .english)
-    // Characterizes the existing contract, not a claim that issue #2 is resolved.
-    #expect(OCRService.detectLanguage(text, source: .korean) == .korean)
+    #expect(OCRService.detectLanguage(text, source: .korean) == .english)
 }

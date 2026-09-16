@@ -17,7 +17,7 @@ actor OCRService {
         request.recognitionLanguages = try Self.recognitionLanguages(
             supported: request.supportedRecognitionLanguages(), source: source)
         request.usesLanguageCorrection = true
-        request.automaticallyDetectsLanguage = source == nil
+        request.automaticallyDetectsLanguage = true
         try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
         try Task.checkCancellation()
         let lines = (request.results ?? []).compactMap { observation -> TextBlock? in
@@ -36,12 +36,12 @@ actor OCRService {
         guard let identifier = supported.first(where: { LensLanguage.match($0, in: [source]) != nil }) else {
             throw OCRServiceError.unsupportedRecognitionLanguages([source.rawValue])
         }
-        return [identifier]
+        // Prioritize the preference without relabeling other scripts as that language.
+        return [identifier] + supported.filter { $0 != identifier }
     }
 
     /// Detect without constraining NL hypotheses, then match to the runtime translation catalog.
     nonisolated static func detectLanguage(_ text: String, source: LensLanguage? = nil, languages: [LensLanguage]? = nil) -> LensLanguage? {
-        if let source { return source }
         let letters = text.unicodeScalars.filter { CharacterSet.letters.contains($0) }
         guard !letters.isEmpty else { return nil }
         let recognizer = NLLanguageRecognizer()
@@ -54,8 +54,15 @@ actor OCRService {
             if let languages { return LensLanguage.match(identifier, in: languages) }
             return LensLanguage(rawValue: identifier)
         }
-        if hasHangul && !hasKana { return accepted("ko") }
-        if hasKana && !hasHangul { return accepted("ja") }
+        guard !(hasHangul && hasKana) else { return nil }
+        // A stray native character is not evidence that a foreign sentence is Korean/Japanese.
+        let native = letters.filter { isHangul($0.value) || isKana($0.value) || isHan($0.value) }.count
+        if hasHangul || hasKana {
+            guard native * 2 >= letters.count else { return nil }
+            let expected = hasHangul ? "ko" : "ja"
+            if letters.count >= 8, let best, best.value >= 0.85, best.key.rawValue != expected { return nil }
+            return accepted(expected)
+        }
         // Single short labels are ambiguous across languages. Scripts without spaces
         // can still identify longer lines; nearby Han-only labels retain the context rule below.
         guard letters.count >= 8, let best, best.value >= 0.85 else { return nil }
