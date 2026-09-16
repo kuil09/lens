@@ -9,6 +9,10 @@ struct LensToolbarState: Equatable {
     var choosingDestination = false
     var locked = false
     var captureSucceeded = false
+
+    // Menus and toolbar share eligibility; recording stop must always remain available.
+    var canCapture: Bool { hasFrame && !choosingDestination }
+    var canToggleRecording: Bool { recording || (!finishing && canCapture) }
 }
 
 /// Window chrome, deliberately outside the capture/render surface.
@@ -65,13 +69,13 @@ struct LensToolbarState: Equatable {
     func update(_ state: LensToolbarState) {
         self.state = state
         configure("capture", label: L10n.text(state.captureSucceeded ? "Image Saved" : "Capture"),
-                  symbol: state.captureSucceeded ? "checkmark" : "camera", enabled: state.hasFrame && !state.choosingDestination,
+                  symbol: state.captureSucceeded ? "checkmark" : "camera", enabled: state.canCapture,
                   help: state.captureSucceeded ? L10n.text("Image Saved") : (state.hasFrame ? L10n.text("Save a PNG directly to your chosen folder. ⇧⌘S") : L10n.text("Connect the screen to save an image.")))
         configure("folder", label: L10n.text("Open Save Folder"), symbol: "folder", enabled: true,
                   help: L10n.text("Open Save Folder"))
         configure("record", label: state.recording ? L10n.text("Stop Recording") : (state.finishing ? L10n.text("Saving…") : L10n.text("Start Recording")),
                   symbol: state.recording ? "stop.circle.fill" : (state.finishing ? "arrow.down.circle" : "record.circle"),
-                  enabled: state.recording || (!state.finishing && state.hasFrame && !state.choosingDestination),
+                  enabled: state.canToggleRecording,
                   help: state.recording ? L10n.text("Stop and save an MP4 to your chosen folder. ⇧⌘R") :
                     (state.finishing ? L10n.text("Saving video…") :
                         (!state.hasFrame ? L10n.text("Connect the screen to record a video.") : L10n.text("Start recording now. Silent video is saved to your chosen folder. ⇧⌘R"))))

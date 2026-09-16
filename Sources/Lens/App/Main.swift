@@ -45,9 +45,7 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
     private var lens: LensPanel!
     private var lensToolbar: LensToolbar?
     private var settingsWindow: LensSettingsWindow?
-    private var preparation: NSWindow?
-    private var reader: NSWindow?
-    private var helpWindow: NSWindow?
+    private let auxiliaryWindows = LensAuxiliaryWindows()
     private var modelObservers = Set<AnyCancellable>()
     private var directoryPanel: NSOpenPanel? { exportCoordinator.directoryPanel }
     private let menus = LensMenuController()
@@ -210,11 +208,14 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
         button.setAccessibilityLabel(button.toolTip)
         statusItem?.menu?.items.first?.title = "Lens — \(state)"
     }
-    private func refreshToolbar() {
-        lensToolbar?.update(LensToolbarState(running: model.running, permissionNeeded: model.permissionNeeded,
+    private var toolbarState: LensToolbarState {
+        LensToolbarState(running: model.running, permissionNeeded: model.permissionNeeded,
             hasFrame: model.hasFrame, recording: recording.isRecording, finishing: recording.isFinishing,
             choosingDestination: directoryPanel != nil, locked: model.locked,
-            captureSucceeded: captureFeedback.showsSuccess))
+            captureSucceeded: captureFeedback.showsSuccess)
+    }
+    private func refreshToolbar() {
+        lensToolbar?.update(toolbarState)
     }
 
     @objc private func showAbout() {
@@ -323,18 +324,8 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
     }
 
     @objc private func showHelp() {
-        if helpWindow == nil {
-            let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 520, height: 620),
-                                  styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
-            window.title = L10n.text("Lens Help"); window.isReleasedWhenClosed = false
-            window.contentMinSize = CGSize(width: 460, height: 500)
-            window.contentView = NSHostingView(rootView: LensHelpView())
-            window.delegate = self; window.tabbingMode = .disallowed; window.center()
-            helpWindow = window
-        }
-        helpWindow?.deminiaturize(nil)
-        helpWindow?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        auxiliaryWindows.prepare(.help, delegate: self) { _ in LensHelpView() }
+        auxiliaryWindows.show(.help)
     }
     @objc private func showLens() {
         guard permissionTask == nil else { return }
@@ -378,10 +369,10 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
             return true
         }
         if menuItem.action == #selector(toggleLock) { menuItem.state = model.locked ? .on : .off }
-        if menuItem.action == #selector(saveCapture) { return model.hasFrame && directoryPanel == nil }
+        if menuItem.action == #selector(saveCapture) { return toolbarState.canCapture }
         if menuItem.action == #selector(toggleRecording) {
             menuItem.title = recording.isRecording ? L10n.text("Stop Recording and Save") : (recording.isFinishing ? L10n.text("Saving video…") : L10n.text("Start Video Recording"))
-            return recording.isRecording || (!recording.isFinishing && model.hasFrame && directoryPanel == nil)
+            return toolbarState.canToggleRecording
         }
         return true
     }
@@ -571,8 +562,7 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
             permissionWindow = nil
             return
         }
-        if notification.object as? NSWindow === preparation {
-            preparation?.contentView = nil; preparation = nil
+        if auxiliaryWindows.didClose(notification.object as? NSWindow) {
             refreshLanguageCatalog()
             lens.level = systemHandoff.isActive ? .normal : .floating
             return
@@ -583,29 +573,18 @@ final class LensAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, 
     }
     @objc private func showPreparation() {
         model.startRequest.cancel()
-        if let preparation { preparation.deminiaturize(nil); preparation.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }
-        let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 600, height: 520), styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
-        window.contentMinSize = CGSize(width: 520, height: 480)
-        window.title = L10n.text("System Language Download"); window.isReleasedWhenClosed = false
-        window.contentView = NSHostingView(rootView: SystemLanguageGuideView(model: model,
-            onReady: { [weak window] in window?.performClose(nil) }))
-        window.delegate = self; window.tabbingMode = .disallowed
-        window.center(); window.makeKeyAndOrderFront(nil)
-        preparation = window; NSApp.activate(ignoringOtherApps: true)
+        auxiliaryWindows.prepare(.languageGuide, delegate: self) { window in
+            SystemLanguageGuideView(model: model, onReady: { [weak window] in window?.performClose(nil) })
+        }
+        auxiliaryWindows.show(.languageGuide)
     }
     @objc private func showReader() {
-        if reader?.isVisible != true && reader?.isMiniaturized != true { model.reading.open() }
-        if reader == nil {
-            let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 600, height: 620), styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
-            window.title = L10n.text("Full Translation"); window.isReleasedWhenClosed = false
-            window.contentMinSize = CGSize(width: 440, height: 360)
-            window.contentView = NSHostingView(rootView: TranslationReader(model: model, reading: model.reading,
-                onShowLens: { [weak self] in self?.showLens() }, onSettings: { [weak self] in self?.showSettings() }))
-            window.delegate = self; window.tabbingMode = .disallowed
-            window.center(); reader = window
+        if !auxiliaryWindows.isPresented(.reader) { model.reading.open() }
+        auxiliaryWindows.prepare(.reader, delegate: self) { _ in
+            TranslationReader(model: model, reading: model.reading,
+                onShowLens: { [weak self] in self?.showLens() }, onSettings: { [weak self] in self?.showSettings() })
         }
-        reader?.deminiaturize(nil)
-        reader?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+        auxiliaryWindows.show(.reader)
     }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         terminating = true
