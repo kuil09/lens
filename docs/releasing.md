@@ -2,7 +2,7 @@
 
 ## Candidate status
 
-**Current release, September 16, 2026:** beta.5/build 12 retains `dev.local.lens` and the existing Developer ID. The owner authorized replacing the beta.5 download after fixing normal launch and language readiness. App and DMG notarization passed through the existing local Keychain fallback; CI notarization remains unverified because two Apple authentication secrets are missing. See [release notes](releases/v0.1.0-beta.5.md) and [build-12 evidence](releases/build-12-validation.md). The historical sections below do not describe the current release.
+**Current release, September 16, 2026:** beta.5/build 15 retains `dev.local.lens` and the existing Developer ID. The owner authorized replacing the beta.5 download with source filtering, stable reading and rounded resize controls. App and DMG notarization passed through the existing local Keychain fallback; CI notarization remains unverified because two Apple authentication secrets are missing. The public download's checksum and contained app were rechecked. See [release notes](releases/v0.1.0-beta.5.md) and [build-15 evidence and limits](releases/build-15-validation.md). The historical sections below do not describe the current release.
 
 ### Historical beta.3 checkpoint
 

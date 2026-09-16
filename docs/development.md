@@ -1,6 +1,6 @@
 # Development
 
-**Current source and GitHub preview:** beta.5/build 11. The notarized DMG and its verification are described in [the installer guide](dmg-installer.md). Version-specific beta.2 paths and checks below are historical, not the current output. Packaging derives names from `Config/Version.xcconfig`. DMG creation additionally requires the pinned packaging-only tools in that guide; ordinary builds are not automatically notarized.
+**Current source and GitHub preview:** beta.5/build 15. The notarized DMG and its verification are described in [build-15 evidence](releases/build-15-validation.md). Version-specific beta.2 paths and checks below are historical, not the current output. Packaging derives names from `Config/Version.xcconfig`. DMG creation additionally requires the pinned packaging-only tools in [the installer guide](dmg-installer.md); ordinary builds are not automatically notarized.
 
 ## Requirements and build identity
 

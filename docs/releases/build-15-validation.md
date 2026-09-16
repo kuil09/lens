@@ -31,9 +31,23 @@ At preflight, `release-signing` still lacks `LENS_APPLE_ID` and
 successfully checked. The authorized local fallback will be used; ordinary
 GitHub development CI is not CI notarization.
 
-Source commit, CI outcome, app/DMG submission IDs, mounted-content checks, and
-public download checksum will be recorded only after those operations succeed.
-Until then build 15 is a candidate, not a verified replacement.
+- Application source: `1f5df5e44bb33a2aa438b52d3dbdd03762aedfc4`.
+- [GitHub CI](https://github.com/kuil09/lens/actions/runs/35042310848) passed
+  checks, unit tests, Release build, development DMG generation, and artifact upload.
+- Local secure-timestamp Developer ID build 15 passed strict signature verification;
+  the unchanged team is `GS344U4ZSG` and hardened runtime remains enabled.
+- App submission `acaa14fb-638e-49d6-9261-c04bc7c9827b`: Accepted, stapled and validated.
+- DMG submission `b60908b1-c925-407b-adb5-18d8f60f3332`: Accepted, stapled and validated.
+- DMG and contained app both pass Gatekeeper as Notarized Developer ID.
+  Read-only mounted app files match the signed build; build number, icon,
+  license, Applications link, and compressed-image integrity were checked.
+- The uploaded build-15 DMG and sidecar were downloaded again with GitHub CLI.
+  SHA-256 and byte comparison matched; the downloaded image's internal app was
+  separately mounted and passed the same signing/ticket/Gatekeeper checks.
+- Final SHA-256: `4eb609fa06a03220d31a6e7f463f040a3fbe58af7d866196448ad8f6b9f0e8ac`.
+- Publication replaces the build-12 asset pair only after validating the new
+  download. Main history remains intact; release-tag changes use the recorded
+  old object as a force-with-lease precondition. No installed app is replaced.
 
 ## Remaining limits
 

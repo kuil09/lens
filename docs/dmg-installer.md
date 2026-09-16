@@ -1,5 +1,7 @@
 # DMG installer and notarization
 
+Current download: **beta.5/build 15**. See [build-15 verification](releases/build-15-validation.md) and [release notes](releases/v0.1.0-beta.5.md). The build-11 artifact, installed-app state, and checks below are historical installer-design evidence, not claims about the current download.
+
 ## Artifact boundary — September 15, 2026
 
 The owner explicitly resumed Apple notarization after observing Gatekeeper block the downloaded beta.4 app. This is automated Apple security checking for external distribution, not App Store submission. Beta.5/build 11 retains `dev.local.lens`, the existing Developer ID signer, and the unchanged application implementation. Only version metadata, signing timestamp, installer tooling/artwork, and documentation changed.

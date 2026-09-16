@@ -6,7 +6,7 @@
 - Full Translation is a fixed reading snapshot. Apply New Translations updates it explicitly, retaining untouched paragraph views and reading position; previous-screen and pending translations are labeled.
 - Click truncated translations to open a fixed, selectable full-text popover only with body click-through disabled. Source invalidation, language changes, movement, hiding, and enabling click-through dismiss it. Shift-Command-T focuses the first truncated item.
 - Four narrow exterior resize strips retain input while the body passes clicks through. Continuous rounded corner markers improve visibility without adding them to image/video exports or changing security hiding.
-- Builds 13 and 14 were local previews; build 15 is the separately authorized beta.5 replacement candidate. Automated tests and observed runtime behavior are distinguished in [interaction validation](docs/interaction-reading-validation.md); complete physical-input, popover, and export runtime acceptance remains incomplete.
+- Builds 13 and 14 were local previews; build 15 is the separately authorized beta.5 replacement. App/DMG local notarization, stapling, Gatekeeper and re-downloaded artifact checks passed. Automated tests and observed runtime behavior are distinguished in [interaction validation](docs/interaction-reading-validation.md); complete physical-input, popover, and export runtime acceptance remains incomplete.
 
 ## 0.1.0-beta.5 — 2026-09-16 (build 12)
 
