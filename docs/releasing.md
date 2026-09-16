@@ -1,137 +1,73 @@
 # Releasing and manual acceptance
 
-## Candidate status
+This is a procedure, not a declaration that a candidate passed. Exact published versions, hashes, signing/notarization routes, and remaining limits belong to [release notes](releases/v0.1.0-beta.5.md) and their linked validation records. Source changes, CI artifacts, and public downloads are separate states.
 
-**Current release, September 16, 2026:** beta.5/build 15 retains `dev.local.lens` and the existing Developer ID. The owner authorized replacing the beta.5 download with source filtering, stable reading and rounded resize controls. App and DMG notarization passed through the existing local Keychain fallback; CI notarization remains unverified because two Apple authentication secrets are missing. The public download's checksum and contained app were rechecked. See [release notes](releases/v0.1.0-beta.5.md) and [build-15 evidence and limits](releases/build-15-validation.md). The historical sections below do not describe the current release.
+## Select and preserve the candidate
 
-### Historical beta.3 checkpoint
+1. Inspect the worktree, remote main, existing tag/release assets, and any running CI or Apple submissions. Preserve unrelated work and user settings. Do not repeat a partially completed commit, dispatch, submission, or upload.
+2. Pin the intended commit. Read version/build/channel from [Version.xcconfig](../Config/Version.xcconfig); compare installed, local-preview, and public artifacts. New application candidates need an unused build number. Packaging-only CI outputs include the source SHA to distinguish otherwise identical version metadata.
+3. Preserve the approved `dev.local.lens` identity and Developer ID team unless an identity migration is explicitly requested. [Distribution.xcconfig](../Config/Distribution.xcconfig) still has a blank separate public identifier; do not enable or repurpose it to run the current identity-preserving CI path.
+4. Run relevant checks/tests and document runtime acceptance on synthetic content. A build/package operation alone does not authorize publication, a tag move, or history rewriting.
 
-The current source candidate is **0.1.0-beta.3 (build 9)**, a nonnotarized development prerelease, retaining `dev.local.lens`. Owner-authorized local Developer ID signing is enabled through a gitignored configuration; fresh checkouts remain ad-hoc by default. See the [release notes](releases/v0.1.0-beta.3.md) and [context/input evidence](context-and-input.md) for recorded checks and NOT_RUN boundaries. [Distribution direction and history](distribution.md) distinguishes local signing from the deferred paid Mac App Store one-time purchase and withdrawn external notarization workflow.
+## Development packaging
 
-- **Prior Developer ID notarization work was withdrawn on September 15, 2026.** Store planning is now allowed, but implementation, signing, submission, and publication remain deferred. No App Store submission was performed. Do not resume signing, status polling, stapling, or publication of the withdrawn candidate as part of that planning.
-- The signed beta.2 build 3 candidate was uploaded to Apple before withdrawal, but was not published on GitHub or installed. Its Apple-side processing is not canceled by removing local files; `notarytool` provides no cancel command. Do not reuse build 3 for a different future candidate.
-- At the build 3 withdrawal, its local outputs were removed and version configuration returned to the beta.1 baseline. That is historical: current source metadata is beta.3/build 9. Existing signing certificates and the owner-created Keychain credentials were retained, not revoked or deleted. The generic DMG packaging feature and regression fixes remain available.
-- Development preview: **0.1.0**, build **9**, tag **v0.1.0-beta.3**.
-- The owner authorized replacement of earlier preview downloads. The DMG is explicitly labeled **DEVELOPMENT-NOT-NOTARIZED**; this does not waive the gates for a notarized public distribution below.
-- Some translation has been observed by a user; formal whole-runtime acceptance remains incomplete.
-- The approved [MIT License](../LICENSE), copyright **2026 kuil09**, is included at the development archive root.
-- The active development bundle identifier remains `dev.local.lens`. The previously approved public identifier `io.github.kuil09.lens` is no longer enabled in distribution configuration; reactivation requires a new request. No installed identity or preferences were migrated.
-- The app icon is supplied through the AppIcon asset catalog, with standard/Retina dimensions and genuine-alpha tests. Notarization, formal translation quality, and end-to-end performance acceptance are not complete.
-
-For the development preview, retain its explicit signing warning and incomplete manual-acceptance status in the [release notes](releases/v0.1.0-beta.3.md). Publishing this preview is not completion of the public-distribution checklist.
-
-Recheck version, build, channel, and `PrivacyInfo.xcprivacy` on the exact distribution artifact after signing and packaging. Local build success is not a public-signing result, a CI result, or whole-runtime acceptance.
-
-Building or packaging does not authorize or perform publication. Development packaging must be explicitly selected. The existing script's public packaging mode is for external Developer ID distribution and requires the license, signing, and notarization gates below; it does not implement Mac App Store distribution.
-
-## Packaging contract
-
-GitHub Actions supports a separate protected, manual [notarized DMG workflow](ci-notarization.md). It uploads verified CI artifacts only, never replaces Releases, and preserves the existing signer/bundle identity. Ordinary CI packages an explicitly nonnotarized development build. See the [remote change review](reviews/2026-09-15-remote-ci.md) for implementation findings and verification limits.
-
-DMG creation now uses pinned packaging-only `dmgbuild` tools and the checked-in Finder artwork. See [setup and verification](dmg-installer.md). Application compilation and ZIP packaging do not require these tools.
-
-This documents the existing development and external Developer ID packaging modes. It is not a store implementation or submission checklist.
-
-`make check`, `make test`, and `make build` wrap `scripts/lens.sh`; see [development](development.md) for the canonical `build-design` workflow. Quit the selected app before packaging. `make package ARGS='--development'` explicitly produces a development ZIP and checksum from the existing Release app. It does not build, sign, notarize, launch, or publish.
-
-Both modes require a nonempty repository license and validate bundle version/build/channel, arm64 executable support, minimum macOS metadata matching `Config/Application.xcconfig` in both the bundle and executable (currently 26.4), and a valid bundled privacy manifest. Without `--development`, packaging additionally requires an owner-confirmed public identifier passed through `--confirmed-distribution-id` that matches both `Config/Distribution.xcconfig` and the app, Developer ID Application signing with a valid team and hardened runtime, a successful notarized Gatekeeper assessment, and a valid stapled ticket. `--app` can select an existing Lens.app by absolute physical path. Signing and notarization must already be complete; the package command only validates them.
-
-Notarized public packaging is inactive. Its safety gates remain intact; withdrawal must not silently relabel a nonnotarized build as notarized. Use explicit `--development` packaging for nonnotarized previews. Output names include version, channel, and build. Both ZIP variants contain `Lens.app` and `LICENSE` at the archive root; the privacy manifest stays inside the app's resources. Package validation is not a substitute for manual acceptance or publication approval.
-
-Use `--format dmg` to create a compressed, verified disk image containing `Lens.app`, the license, and an `Applications` symlink for drag-and-drop installation. This runs the same app-validation gates as ZIP packaging and refuses existing output names. Temporary staging is removed on exit. A development DMG retains the `DEVELOPMENT-NOT-NOTARIZED` suffix even if its app has a Developer ID signature. A public DMG must additionally be signed, submitted for notarization, and stapled; regenerate its checksum after those mutations. Do not publish a pre-notarization candidate as a notarized release.
-
-## Manual Developer ID build and notarization
-
-**Inactive external-distribution reference only. The owner withdrew this workflow; it is not the planned Mac App Store path. Do not run the following commands without renewed authorization.** The public identifier is intentionally blank in configuration. The team identifier and Keychain profile name are not credentials. A valid Developer ID Application certificate/private key must already be available to Xcode, and the named notarization credentials must already be stored in Keychain. Never put passwords, API keys, or private-key material in these commands or the repository.
-
-Use the same shell for the following steps, from the repository root. The temporary build keeps the canonical `build-design` app and its development identity intact. These commands invoke Xcode directly to use the separate external-distribution configuration rather than the canonical local signing configuration.
+Build/test instructions are in [Development](development.md). Quit the selected app before packaging an existing Release product:
 
 ```sh
-set -eu
-LENS_PUBLIC_ID=''
-LENS_TEAM_ID=''
-LENS_NOTARY_PROFILE=''
-: "${LENS_PUBLIC_ID:?Set the owner-confirmed identifier matching Distribution.xcconfig}"
-: "${LENS_TEAM_ID:?Set the Developer ID signing team identifier}"
-: "${LENS_NOTARY_PROFILE:?Set an existing Keychain profile name}"
-LENS_RELEASE_DD="$(mktemp -d /private/tmp/lens-derived-data.XXXXXX)"
-LENS_RELEASE_APP="$LENS_RELEASE_DD/Build/Products/Release/Lens.app"
-
-xcodebuild -project Lens.xcodeproj -scheme Lens -configuration Release \
-  -destination 'generic/platform=macOS' -derivedDataPath "$LENS_RELEASE_DD" \
-  -xcconfig Config/Distribution.xcconfig \
-  DEVELOPMENT_TEAM="$LENS_TEAM_ID" CODE_SIGN_STYLE=Manual \
-  CODE_SIGN_IDENTITY='Developer ID Application' \
-  ENABLE_HARDENED_RUNTIME=YES OTHER_CODE_SIGN_FLAGS='--timestamp' build
-
-/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$LENS_RELEASE_APP/Contents/Info.plist"
-test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$LENS_RELEASE_APP/Contents/Info.plist")" = "$LENS_PUBLIC_ID"
-codesign --verify --deep --strict "$LENS_RELEASE_APP"
-codesign --display --verbose=4 "$LENS_RELEASE_APP"
+make package ARGS='--development'
+make package ARGS='--development --format dmg'
 ```
 
-Stop on a failed command. Before submission, compare the printed identifier with the approved configuration and inspect the signing authority/team, hardened runtime, secure timestamp, version/build/channel, and privacy manifest. Do not proceed with an ad-hoc signature or an unexpected identity. Review Apple's [distribution-signing guidance](https://developer.apple.com/documentation/xcode/creating-distribution-signed-code-for-the-mac/).
+Choose the required format; ZIP is the default and does not need packaging dependencies. DMG requires [the pinned packaging tools](dmg-installer.md#packaging-only-setup). Both commands consume an existing app: they do not build, sign, notarize, launch, quit, or publish it.
 
-Notarization uploads the signed app to Apple; obtain authorization for that submission separately. Create a submission ZIP in the isolated build directory, not the final release location:
+Output names derive from the built version/channel/build and retain **DEVELOPMENT-NOT-NOTARIZED**, even if the contained app has a Developer ID signature. Inspect the path printed by the command and its checksum sidecar, not a historical filename. Existing outputs are not overwritten. `--app` accepts an existing Lens.app by absolute physical path without altering another running build.
 
-```sh
-ditto -c -k --sequesterRsrc --keepParent "$LENS_RELEASE_APP" \
-  "$LENS_RELEASE_DD/Lens-notarization.zip"
-xcrun notarytool submit "$LENS_RELEASE_DD/Lens-notarization.zip" \
-  --keychain-profile "$LENS_NOTARY_PROFILE" --wait
-```
+The wrapper requires the license and validates app metadata, arm64 support, minimum macOS version in bundle/executable, and privacy manifest. ZIP contains Lens.app and LICENSE; DMG also includes the Applications symlink and installer artwork. A successful development package cannot be relabeled as notarized.
 
-Proceed only when the result is **Accepted**. A timeout or successful upload is not acceptance. If rejected, inspect the submission log through `notarytool` using the returned submission ID and the same Keychain profile, correct the cause, and submit a newly signed build. Keep diagnostics outside the repository. Apple documents submission, result inspection, and ticket handling in [Customizing the notarization workflow](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow).
+## Notarized DMG via protected CI
 
-Staple the ticket to the app, validate it, then create the final ZIP from that stapled app:
+The supported automated path is **Lens Notarized DMG**, a manual main-only workflow protected by the `release-signing` environment. See [CI configuration and execution](ci-notarization.md) for the single authoritative list of Secret/variable names and checks. Environment rules and main restrictions must be preserved; required human review must not be self-approved or bypassed.
 
-```sh
-xcrun stapler staple "$LENS_RELEASE_APP"
-xcrun stapler validate "$LENS_RELEASE_APP"
-codesign --verify --deep --strict "$LENS_RELEASE_APP"
-spctl --assess --type execute --verbose=2 "$LENS_RELEASE_APP"
-bash scripts/lens.sh package --derived-data "$LENS_RELEASE_DD" \
-  --app "$LENS_RELEASE_APP" --confirmed-distribution-id "$LENS_PUBLIC_ID"
-```
+Before an authorized dispatch, pin/verify remote main and the workflow's source SHA. The workflow validates tools, runs checks/tests, imports the existing signer into a disposable keychain, authenticates with Apple, and builds with hardened runtime, secure timestamp, and no debugger-attachment entitlement. It then:
 
-If this workflow is reauthorized, inspect the exact archive path printed by the packaging command and verify its matching `.sha256` sidecar. Do not reuse a historical beta.1 filename for a new candidate.
+1. Submits the app ZIP once, requires **Accepted**, staples and validates the app, and assesses Gatekeeper.
+2. Creates a staging development DMG from that exact app, signs/submits the DMG separately, requires **Accepted**, staples it and assesses Gatekeeper.
+3. Mounts the image read-only and validates the contained app, file equality, license and Applications link.
+4. Computes SHA-256 after all mutations and uploads only the DMG, sidecar and allowlisted provenance as an Actions artifact.
 
-Do not distribute the submission ZIP. The final package includes the license and stapled app; any subsequent app modification requires renewed signature/notarization checks. Complete manual acceptance on that exact package before separately authorized publication. No public identifier, signing success, notarization acceptance, or publication is implied by these examples.
+It does **not** create/update a GitHub Release. Secret existence, real authentication, app acceptance, DMG acceptance, and public-file validation must each be recorded separately. A corrected workflow's tests do not prove its next Apple submission will pass. Never put private keys, passwords, or unrestricted service logs in documentation/artifacts.
 
-## Release gates
+The wrapper's older no-`--development` public-package mode remains guarded by a separately confirmed identifier matching Distribution.xcconfig, a pre-signed/pre-notarized app, and a stapled ticket. That configuration is inactive; it is **not** the entrypoint for the current CI flow and is not a Mac App Store workflow. Historical local notarization records describe what happened, not a copy-and-run fallback recipe. Do not hide CI failures by silently switching to local signing.
 
-The general artifact and runtime checks below apply to candidate review. Developer ID/notarization and GitHub publication items apply only if those external distribution actions are requested again; they remain deferred and do not define Mac App Store readiness. Notarization gates must pass before any future external artifact is described as notarized. Store preparation remains planned work under [distribution](distribution.md).
+## Release gates and recovery
 
-- [x] Verify the approved MIT license is present in the repository with copyright holder kuil09.
-- [ ] Verify the license is included in the final distribution.
-- [ ] Reconfirm the public bundle identifier if signed distribution is requested again; assess permission/preferences implications.
-- [ ] Confirm the intended Developer ID Application signing identity/team, hardened runtime, and necessary entitlements for the final artifact.
-- [ ] Confirm a final app icon is included and displays correctly in Finder, Dock, and the About window.
-- [ ] Verify the final packaged app matches the selected version configuration. Any new candidate must use a build number greater than the withdrawn build 3. Keep prerelease tags separate from the numeric app version.
-- [ ] Verify the signed bundle contains the privacy manifest and its declared API reasons match the current code. A manifest is not privacy certification.
-- [ ] Inspect the final build/package command contract and run its required checks against the candidate revision. Record test failures and skipped/opt-in checks explicitly.
-- [ ] Check signature validity, notarization acceptance, stapling, and Gatekeeper behavior on the exact public artifact. An ad-hoc development package cannot satisfy this gate.
-- [ ] Complete the manual acceptance matrix below using the exact candidate artifact; identify blockers and retest fixes.
-- [ ] Review privacy behavior, the changelog, contribution/reporting links, and known limitations.
-- [ ] In a separately authorized repository action, enable GitHub private vulnerability reporting, verify the read-only API returns `enabled: true`, and update SECURITY.md. It was verified disabled on September 15, 2026. No build, packaging, or documentation action enables it automatically.
-- [ ] Inspect archive contents for the app, license, and expected metadata; exclude credentials, personal paths, activity logs, screenshots, and development output.
-- [ ] Obtain maintainer approval for the candidate and any explicitly deferred acceptance items. Do not describe untested features as accepted.
-- [ ] Only after separate publication authorization, create the candidate tag and prerelease with the approved artifact and checksum. Packaging and CI must not automatically publish.
+Record PASS, FAIL, NOT_RUN or BLOCKED per candidate. No checked checkbox here is inherited by a future build.
+
+- Verify the final app version/build/channel, existing bundle ID and team, Developer ID Application signature, hardened runtime, secure timestamp and permitted entitlements.
+- Check icon resources and actual Finder/Dock/About appearance separately. Verify the privacy manifest matches current API use and the exact [MIT license](../LICENSE) is included.
+- Require app and DMG **Accepted** results with submission IDs, stapled-ticket validation, strict signature checks, and Gatekeeper acceptance of both DMG and contained app. Upload success or timeout is not acceptance.
+- On timeout, query the existing submission ID instead of blind resubmission. On rejection, distinguish authentication from build/signing/packaging faults and inspect sanitized reasons. Fix a rejected binary before making another submission; do not publish failed output.
+- Mount the exact candidate read-only; compare the app against the signed source bundle and inspect Applications link, license, artwork and metadata. Check image integrity and checksum after stapling. Exclude secrets, activity logs, personal screenshots and build scratch material.
+- Exercise the acceptance matrix below. Preserve explicit limits and obtain any required maintainer acceptance of deferred items; security checks do not waive data-loss or use-blocking failures.
+- Review release notes/changelog, privacy and security-reporting instructions. Any account/repository security-setting changes are separate authorized actions, not implicit packaging steps.
+- For an authorized replacement, retain the previous exact assets and tag object temporarily. Upload the uniquely named new DMG/sidecar first; redownload from GitHub and verify checksum, signature, tickets and contained app before removing **only** the named old replacement assets.
+- Update release notes/tag only to the approved source. If a tag move is authorized, check its recorded old remote value; never rewrite main as an incidental release operation. Test installation from the public download without clearing quarantine or resetting permissions.
+- If public-file/install verification fails, do not report completion; restore the previous assets/tag within the approved replacement scope. After successful replacement, remove temporary recovery copies safely. Publish source SHA, CI link, notarization route/IDs, public download/checksum, actual runtime results and untested boundaries.
 
 ## Manual acceptance matrix
 
-This is the acceptance template; candidate-specific observations and exact NOT_RUN items live in [beta.2 readiness](releases/beta.2-readiness.md). A partial observation does not pass an entire scenario. Use PASS, FAIL, NOT_RUN, or BLOCKED. Record the candidate revision/version/build, macOS version, Mac model/architecture, display configuration, tested language pairs/model state, and sanitized observations. Keep personal machine identifiers, local absolute paths, private activity logs, and screenshots out of checked-in evidence.
+Candidate-specific evidence belongs under `docs/releases/`, linked from that release's notes. Record revision/version/build, macOS and architecture, display configuration, installed language pairs, and sanitized observations. A partial observation does not pass an entire scenario.
 
 | Scenario | Acceptance criterion |
 | --- | --- |
-| Clean machine / new install | On a supported Mac or clean user environment without Lens state, install and launch the exact candidate. Verify identity/icon/version, permission explanation, denial and later grant, relaunch, language preparation, and visible translation of synthetic text. For public distribution, verify Gatekeeper without bypasses. |
-| Update | Replace the previous development/candidate app through the intended update procedure. Check saved source/target and display preferences, permission continuity or clear reauthorization, launch, translation, and export. Record both versions and identities. |
-| Core translation | Translate horizontal synthetic Korean, Japanese, and English text in both directions where models are installed. Check meaning, source-position alignment, explicit source and automatic detection, full text/copy, movement/resize, rapid content/language changes, and absence of obsolete overlays. Record additional catalog pairs separately. |
-| Language preparation / offline | Check missing/unsupported pairs and canceled or interrupted downloads. Prepare a pair online, disconnect the network, relaunch, and translate new synthetic text using the installed pair. An unavailable pair must show an actionable state. Record recovery; do not infer offline success from model installation alone. |
-| 30-minute session | Run mixed static/scrolling content for at least 30 minutes, including movement/resize and repeated language changes. Check responsiveness, crashes, stale overlays, CPU/memory trend and thermal observations. Record measurements and regressions; duration alone does not establish a performance target. |
-| Multiple monitors | Test different scale factors, moving between screens, crossing screen edges, and display disconnect/reconnect. Confirm alignment, selected capture region, restart/recovery, and no capture of an unintended region. |
-| Lifecycle / click-through | Verify pause/resume, sleep/wake, closing/reopening the lens, closing settings/reader, and quitting. Ensure menu-bar controls remain usable while click-through is on. |
-| Image / video / privacy | Export synthetic content while live translation is active and transparent; confirm the captured background and displayed translations, no window chrome or audio, readable PNG/playable MP4, and recording/saving indicators. Check shared-folder selection/cancel, persistence, immediate save/start without filename prompts, collision suffixes without overwriting, folder changes during recording, and unavailable-folder errors. Test stop, move/resize, language change, pause, sleep, quit, and failure/recovery with disposable files. |
-| App UI / accessibility | Check English, Korean, and Japanese labels, macOS app-language selection and fallback, light/dark appearance, keyboard navigation, focus, readable sizing, and assistive-technology access. Verify paused glass and Reduce Transparency fallback separately from live transparent translation. See the scoped observations in [localization](localization.md); these do not establish a complete accessibility journey. |
+| Clean install / update | Install the exact downloaded candidate without security bypass. Check identity/icon/version, first-run denial/grant and retry, then paused relaunch after completion. Update without losing language/save-folder choices; record both identities and consent behavior. |
+| Core translation | Use synthetic horizontal Korean/Japanese/English in six installed directions; assess meaning, alignment, source filtering and Auto Detect. Exercise line wrapping, changing numbers/negation, scrolling and region/language changes without stale overlays. |
+| Reader / overflow | Reader selection/scroll stay fixed until manual Apply; prior-screen/pending labels are clear. Truncated popovers work only when unlocked and close on invalidation/handoff. |
+| Languages / offline | Check missing/unsupported pairs, readiness-in-progress, failure/retry and canceled downloads. Follow system guidance, return/recheck, then test new synthetic text offline. Do not remove a user's models merely to create a test case. |
+| Sustained use | At least 30 minutes of static/scrolling content, move/resize and language changes; measure responsiveness, CPU/memory and thermal behavior. Duration alone is not a latency guarantee. |
+| Displays / Spaces | Different scales, screen boundaries/disconnects, Spaces and full-screen apps; verify alignment, valid capture regions and recovery. |
+| Lifecycle / input | Real cross-app body click/drag/scroll and keyboard focus; toolbar/unlock/record-stop/resize remain usable with no double input. Move, zoom, minimize, restore, hide, close, sleep and quit leave no orphan panels. System Settings hides all overlay panels without obstructing authentication. |
+| Export / recovery | PNG and playable silent MP4 contain background/translations but no toolbar, resize marks or popover. Check camera success/failure, current-folder opening, persistence, collisions/no overwrite, folder changes mid-recording, missing-folder errors, stop/finalization and recovery with disposable files. |
+| UI / accessibility | English/Korean/Japanese, narrow windows, light/dark, Reduce Transparency/Motion, keyboard and VoiceOver. Glass layout screenshots alone do not establish actual compositor appearance or focus/input behavior. |
 
-CI evidence belongs in the automated-check record. Manual runtime evidence belongs in this matrix's candidate-specific results. Neither substitutes for the other. Notarization evidence also does not establish translation quality or performance.
+Keep automated CI, artifact inspection, real macOS use, and clean-machine acceptance separate. Historical records are evidence for their exact builds, not blanket acceptance of newer source.

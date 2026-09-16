@@ -1,6 +1,6 @@
 # beta.2 local candidate review
 
-The original review below covers app 0.1.0, channel beta.2, build 4 with ad-hoc signing. Current source is build 6 with owner-authorized local Developer ID signing, described separately below; it retains `dev.local.lens`. These historical local checks support the separately authorized beta.2 development prerelease; see [release notes](v0.1.0-beta.2.md). Prior external notarization remains withdrawn. Paid Mac App Store one-time purchase is planned, but store implementation/signing/submission are deferred. See [distribution direction and history](../distribution.md). This is not final release approval; published beta.1 remains unchanged.
+The original review below covers app 0.1.0, channel beta.2, build 4 with ad-hoc signing. At the end of this review, source was build 6 with owner-authorized local Developer ID signing, described separately below; it retains `dev.local.lens`. These historical local checks support the separately authorized beta.2 development prerelease; see [release notes](v0.1.0-beta.2.md). At that checkpoint, prior external notarization was withdrawn. Paid Mac App Store one-time purchase is planned, but store implementation/signing/submission are deferred. See [distribution direction and history](../distribution.md). This was not final release approval; the published beta.1 was unchanged at that checkpoint. Later releases do not change these historical results.
 
 ## Executed plan
 
@@ -98,3 +98,31 @@ Actual administrator-password input, recording-in-progress handoff, and grant re
 - Commit/tag/GitHub publication and approval of deferred acceptance are separate actions. No publication was performed by this review.
 
 Use the [manual acceptance matrix](../releasing.md#manual-acceptance-matrix) for candidate-specific runtime results. Store readiness is planned work, not an outcome of these development checks.
+
+## Withdrawn build 3 distribution candidate
+
+Historical decision, September 15, 2026: the signed beta.2/build 3 app had been submitted to Apple before the owner withdrew that candidate. It was not installed or published. Local outputs were removed and version configuration returned to the beta.1 baseline at that time; this is not the present source state. Build 3 must not be reused. Removing local files did not cancel Apple-side processing; no acceptance was established.
+
+Existing certificates and the owner-created Keychain credentials were retained, not revoked. The earlier proposed `io.github.kuil09.lens` identifier was left inactive in Distribution.xcconfig; no settings or installed identity were migrated. Do not resume that old submission or its polling based on this historical record. Subsequent authorized notarization is documented separately in [beta.5](v0.1.0-beta.5.md).
+
+## Earlier implementation checks moved from the development guide
+
+The following September 15 observations predate later release verification. They retain their original scope and unverified items; moving them here does not rerun the checks.
+
+## Liquid Glass development check — 2026-09-15
+
+Native inspection verified the paused lens and independent translation settings window, readable language labels after disabling titlebar accessory auto-sizing, and Korean/Japanese swapping in both directions. The original language selection was restored. The paused background uses the system glass material; translation activation removes it rather than drawing captured pixels over the desktop. Tests cover these presentation states, one invalidation per swap, unsupported/automatic-source swap guards, reduced-transparency fallback, and controls remaining outside the capture region at 800×500 and 320×240 content sizes.
+
+Live activation stopped at the current development build's Screen Recording permission check. Transparent live translation, light appearance, and a full accessibility/contrast audit remain unverified. Offscreen view renders are layout aids, not evidence of compositor-rendered glass. No notarization or release publication was performed for this UI candidate.
+
+## Automatic export folder check — 2026-09-15
+
+`LensExportTests` exercise same-timestamp image accumulation, bookmark persistence, missing/read-only folders, damaged bookmarks, exclusive publication after a filename collision, and folder changes during a real synthetic MP4 recording. The video decode test also verifies that an existing destination survives finalization and the new MP4 is written under a different name. Temporary image writes and video finalization share an exclusive, same-directory rename; collisions receive numeric suffixes. Export preferences do not invalidate translation or stop an ongoing recording.
+
+The settings folder selector uses `NSOpenPanel`; capture/record entrypoints contain no save dialog. Native UI automation timed out while the previous app remained running, so folder-panel interaction and real desktop capture-to-folder remain unverified for this change. The test fixtures use isolated preferences and temporary directories, not user captures.
+
+## System permission handoff check — 2026-09-15
+
+`LensSystemHandoffTests` exercise the production panel initializer, loss of visibility/key eligibility during handoff, idempotent suspension, and explicit-only restoration without restarting capture. Only System Settings activation triggers this policy; ordinary applications retain the translation overlay. The permission request path waits for the capture-stop task before calling the OS request, and keeps the lens hidden afterward. Existing once-per-launch permission-request tests still apply.
+
+The user's real administrator-password stall has not been reproduced in an authentication dialog. Native inspection failed with ScreenCaptureKit error -3811, so no password was requested, read, or entered. The canonical app's workspace icon lookup was refreshed with a narrowly scoped registration update; a same-size 64-pixel comparison changed from zero blue-dominant pixels to 1,175. This establishes an icon-service lookup change, not that System Settings has repainted its existing row.

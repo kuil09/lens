@@ -106,7 +106,7 @@ build 12; no release assets or installed app were replaced.
 
 ## Resume verification
 
-Reproducible checks:
+Commands recorded for that local preview (the temporary directory is historical, not a reusable development path). For a new checkout, use [the development guide](development.md#commands):
 
 ```sh
 bash scripts/lens.sh test --derived-data /private/tmp/lens-derived-data.JzSiqo

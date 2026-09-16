@@ -21,7 +21,7 @@
 - Redesigned the Finder installer with aligned 96-point app/folder icons, a directional arrow, and English, Korean, and Japanese drag-to-install guidance. Packaging-only dependencies are pinned; none enter the app.
 - Resumed owner-authorized Apple notarization separately from App Store work. App and DMG tickets validate and Gatekeeper accepts both. Preserve the existing Developer ID signer, `dev.local.lens`, and user settings.
 - Separately authorized GitHub publication provides the notarized DMG and checksum under beta.5. Consolidate main into one beta.5 source baseline; preserve earlier tags and release records. Installed copies are not automatically updated.
-- Avoid Finder extension-hiding attributes on signed bundles: they break strict signature verification. Validate the app inside the actual mounted DMG, not only the source build. See [installer verification](docs/dmg-installer.md).
+- Avoid Finder extension-hiding attributes on signed bundles: they break strict signature verification. Validate the app inside the actual mounted DMG, not only the source build. See [historical installer verification](docs/releases/v0.1.0-beta.5.md#historical-beta5-installer-record--build-11).
 
 ## 0.1.0-beta.4 — 2026-09-15 (build 10)
 

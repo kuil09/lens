@@ -2,43 +2,33 @@
 
 <img src="Sources/Lens/Resources/Assets.xcassets/AppIcon.appiconset/icon-128.png" width="96" height="96" alt="Lens: A becomes 가 through a glass lens">
 
-Translate text where you see it on your Mac. Place a resizable lens over a document, website, or app to display translations near the original text, using Vision OCR and Apple Translation on-device.
+Translate text where you see it on your Mac. Place a resizable lens over a document, website, or app to read translations near the original text. Recognition and translation use Apple's on-device frameworks; no separate model server is needed.
 
-**Notarized preview: [v0.1.0-beta.5](https://github.com/kuil09/lens/releases/tag/v0.1.0-beta.5), app 0.1.0 (build 15).** Download the DMG and its SHA-256 sidecar from the release. Both the app and DMG are **Developer ID signed, Apple-notarized, and stapled**; Gatekeeper checks passed, including the app inside the re-downloaded image. Build 15 adds source-language filtering, a fixed full-text reader with manual updates, truncated-text popovers, and rounded resize controls. This remains a beta: physical input/popover acceptance, clean-Mac installation, formal whole-runtime acceptance, translation quality, and end-to-end performance remain incomplete. Do not disable macOS security protections.
+## Download and requirements
 
-The redesigned drag-and-drop installer has aligned app/folder icons and English, Korean, and Japanese instructions. See [beta.5 release notes](docs/releases/v0.1.0-beta.5.md) and [installer verification](docs/dmg-installer.md). Capture confirmation, the save-folder shortcut, and window-return behavior are documented in the [UX review](docs/ux-capture-and-windows.md). Earlier releases and source tags are historical; their notarization status has not changed.
+**[Download Lens for macOS](https://github.com/kuil09/lens/releases)** — choose the DMG and its SHA-256 sidecar from the release. Exact versions, signing/notarization results, checksums, and known validation limits belong to the release notes, not the source checkout.
 
-The published release retains the development identifier `dev.local.lens` and includes [region-adaptive backoff](docs/adaptive-backoff.md) and [context/visibility separation with an interactive click-through header](docs/context-and-input.md). Native click-through input delivery still requires manual acceptance. Optional [machine-local signing](docs/development.md#stable-local-signing) preserves code identity across rebuilds; fresh checkouts default to ad-hoc signing. The planned commercial distribution is a **paid Mac App Store one-time purchase, with no subscriptions**. Store implementation, signing, and submission are deferred; see [distribution direction and status](docs/distribution.md).
-
-Notarization is separate from App Store submission. Publishing this DMG does not automatically update an installed copy; quit Lens and replace it using the new installer.
+- Apple Silicon Mac, macOS 26.4 or later.
+- Screen Recording permission and a supported, installed translation language pair.
+- Internet access to download additional translation languages. Xcode is **not** required to run the downloaded app; source-build requirements are in [Development](docs/development.md).
 
 ## Get started
 
-Requires Apple Silicon, macOS 26.4 or later, and Xcode 26.4 or later to build from source. Lens has no third-party package dependencies or model server requirement. Follow the [development guide](docs/development.md) for the local build.
+1. Open the DMG, drag **Lens** to **Applications**, and open it there. To update, quit the previous copy first; downloading alone does not update the installed app.
+2. Follow the first-launch guide to allow screen access, select installed languages, and choose the shared image/video folder. The overlay hides during System Settings so it does not obstruct authentication.
+3. Place the lens over horizontal text, select source and target, and turn on **Translation**. Translation off shows frosted Liquid Glass; on reveals the screen with translated text.
+4. Enable **Pass Through Clicks and Scrolling** to use the app underneath. Only the body passes input through; the toolbar and resize edges stay interactive.
+5. Use the camera and record controls to save PNG images or silent MP4 videos directly to your chosen folder. The folder button opens that folder in Finder.
 
-Open the DMG and drag Lens to Applications, then open Lens from Applications. Control labels below use Korean; equivalent English and Japanese labels are available. macOS may still show its normal first-download confirmation or request screen-recording consent.
+The interface follows macOS language preferences and supports English, Korean, and Japanese. Translation choices are separate: only installed routes with compatible source OCR appear. Add languages through **System Language Download…** in Help or Settings.
 
-1. Follow **Lens 시작하기** on first launch: check screen access, choose installed translation languages, and confirm the save folder. Reopen it from **도움말 → 시작 안내…**.
-2. Allow Lens in **System Settings → Privacy & Security → Screen & System Audio Recording**. Quit and reopen Lens if macOS requests it. The lens hides while you use System Settings.
-3. Source/target menus show installed translation models only. To add a language, open **언어 팩 관리…**. Downloads require internet access and explicit confirmation.
-4. Place the lens over text and enable the **번역** switch. Off shows frosted Liquid Glass; on reveals the desktop with translations over the original text.
-5. Enable **클릭과 스크롤 통과** to interact with the app underneath; the header cursor button and menu-bar item remain available to turn it off. **Lens → 설정…** (Command-comma) opens independent translation, appearance, and capture settings.
+## Limits and guides
 
-The current source UI supports English, Korean, and Japanese, following macOS app-language preferences with English as the fallback. Restart Lens after changing its language in System Settings → General → Language & Region → Applications. UI language is independent of installed translation packs and source/target selection. Translation choices require Apple's installed-pair status and source OCR support; this does **not** mean every macOS language is supported. **Use macOS Language** selects an installed translation target from your preferences.
+Lens is a beta focused on horizontal text, not vertical writing or games. Ambiguous short text can remain untranslated. Exports include the captured background even when the lens is transparent; inspect files before sharing. Notarization is an Apple security check, not a translation-quality or runtime guarantee. Never disable macOS security protections to install Lens.
 
-Images and silent videos are saved only when requested to the selected shared folder, without a filename prompt. Exports include the captured background while the live lens is transparent. Read the [privacy guide](docs/privacy.md) before exporting or sharing.
+- [Using Lens](docs/usage.md) · [Troubleshooting](docs/troubleshooting.md) · [Privacy](docs/privacy.md)
+- [Development](docs/development.md) · [Contributing](CONTRIBUTING.md)
+- [Release procedure](docs/releasing.md) · [Beta.5 release record](docs/releases/v0.1.0-beta.5.md)
+- [Changelog](CHANGELOG.md) · [Security reporting](SECURITY.md)
 
-## Guides and community
-
-- [Using Lens](docs/usage.md): display modes, language packs, shortcuts, image and video export.
-- [Troubleshooting](docs/troubleshooting.md): permissions, missing languages, capture and export problems.
-- [Development](docs/development.md) and [contributing](CONTRIBUTING.md).
-- [UI localization](docs/localization.md): supported interface languages, contributor workflow, and recorded checks.
-- [Distribution](docs/distribution.md): planned purchase model, current artifact status, and withdrawn notarization history.
-- [Release checklist and manual acceptance](docs/releasing.md), with [current evidence and remaining limitations](docs/context-and-input.md).
-- [Beta.5 release notes](docs/releases/v0.1.0-beta.5.md). Earlier notes and tags remain as historical evidence; beta.4 and earlier artifacts are not covered by beta.5 notarization.
-- [Changelog](CHANGELOG.md) and [security reporting](SECURITY.md).
-
-Horizontal text is the current focus; vertical writing and game-specific optimization are out of scope. Offline use, language-download recovery, multiple displays, and sustained operation still need formal runtime acceptance.
-
-Source repository: [kuil09/lens](https://github.com/kuil09/lens). Licensed under the [MIT License](LICENSE), copyright **2026 kuil09**. Public distribution still requires the release checklist.
+Licensed under the [MIT License](LICENSE), copyright **2026 kuil09**.

@@ -2,7 +2,7 @@
 
 Lens is a development preview. Start with the [development guide](docs/development.md), [privacy notes](docs/privacy.md), and [manual acceptance checklist](docs/releasing.md).
 
-Use [distribution](docs/distribution.md) for the planned paid Mac App Store one-time purchase (no subscriptions) and deferred store work. [beta.2 readiness](docs/releases/beta.2-readiness.md) records candidate evidence and remaining NOT_RUN checks; published [beta.1 notes](docs/releases/v0.1.0-beta.1.md) remain historical.
+Use [distribution](docs/distribution.md) to distinguish the external DMG route from deferred store work. Candidate-specific results and unverified items belong to the linked validation record in each [release's notes](docs/releases/v0.1.0-beta.5.md); historical test results do not certify a newer build.
 
 ## Issues
 

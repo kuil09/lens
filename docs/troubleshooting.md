@@ -1,66 +1,60 @@
 # Troubleshooting
 
-Use synthetic text, such as the bundled `Tools/fixture.html`, while investigating. Never attach private screen content to a report.
+Use synthetic text, such as [the bundled fixture](../Tools/fixture.html), while investigating. Never attach private screen content or credentials to a report. Compare the installed app's About version/build with its release notes; source documentation does not update an installed copy.
 
 ## Permission is enabled, but capture does not start
 
-1. Check Lens in System Settings → Privacy & Security → Screen & System Audio Recording.
-2. Return to Lens from the Dock and choose **권한 다시 확인**. Quit and reopen only if macOS asks you to; a missing grant alone is not evidence that relaunch is required.
-3. Start translation explicitly once access and languages are ready. Only **시스템 설정 열기…** may request permission, at most once per launch. Reopening, rechecking, and launching do not.
-4. If you rebuilt or replaced the app, check its Screen Recording entry again. Ad-hoc signing, a different build location, or a changed bundle identity can affect permission continuity.
+1. Check Lens in **System Settings → Privacy & Security → Screen & System Audio Recording**.
+2. Return through the Dock or **렌즈 보기**. In the permission guide, choose **권한 다시 확인**; Settings also has an independent recheck. Quit and reopen if macOS requests it. A visible enabled switch alone does not prove capture works.
+3. Start translation explicitly after permission and language readiness are confirmed. Only the explicit screen-permission Settings action may request access, at most once per launch; launching/rechecking does not.
+4. If rebuilt/replaced, verify the exact app path and signing identity. A different bundle identity or ad-hoc signature can affect consent continuity.
 
-Keep the canonical development build location and existing identity while diagnosing. Do not reset all macOS privacy permissions as a first step. A visible permission switch alone does not prove capture or translation works.
+Keep the existing app identity and stable development path. [Stable local signing](development.md#stable-local-signing) avoids changing the code requirement with every build, but does not bypass consent or guarantee macOS will never ask again. Do not alternate ad-hoc/signed builds at the installed path or reset privacy permissions as a troubleshooting shortcut.
 
-Ad-hoc signatures identify one specific build. Rebuilding can therefore invalidate an earlier grant even at the same path. [Stable local signing](development.md#stable-local-signing) lets successive builds satisfy the same signer/app requirement. The first transition from ad-hoc signing may need another grant and relaunch; future permission behavior still needs verification on the actual signed app. Do not alternate signed and ad-hoc builds at the installed path.
+## Lens is hidden or a return guide appears
 
-## Keyboard input stalls in a system permission dialog
+System Settings handoff intentionally stops capture, finalizes recording, and hides the body, toolbar, resize panels, and popover. Return via the Dock, **보기 → 렌즈 보기**, or the menu-bar item. The normal guide rechecks permission and offers an explicit start; **나중에** keeps a paused guide with resume/quit actions. Incomplete onboarding resumes its saved step next launch.
 
-Close or hide the lens before entering an administrator password; never paste a password into Lens or an issue report. Current source relinquishes the overlay before requesting Screen Recording access or opening System Settings. Activating System Settings directly also pauses capture/recording and hides the lens. It stays hidden until an explicit **렌즈 보기** or **번역 시작** action. The panel uses ordinary app activation rather than a nonactivating panel's keyboard focus behavior.
+This is distinct from a completed user's normal relaunch: with permission available, that opens the paused lens without another onboarding guide. Returning to an already running, visible lens does not stop translation. Closing/minimizing the lens does pause it; restoring does not start capture automatically.
 
-This removes an overlay/focus interference path; it does not establish that Secure Input caused a reported stall. Lens does not inspect or disable Secure Input, install keyboard event taps, or bypass authentication. A real authentication check must be performed by the user after installing the updated build.
-
-It is intentional for Lens to remain running with its overlay hidden during this handoff. Returning from the Dock, **보기 → 렌즈 보기** (Command-L), or the menu-bar item's **렌즈 보기** opens a normal guide, not the floating overlay. The guide rechecks OS permission and offers setup or an explicit translation-start action. **나중에** leaves a paused guide with resume and quit actions. Intentionally closing all windows is allowed; reopening restores guidance. Incomplete onboarding progress survives normal quit. Capture and recording never resume just because a window or app was reopened.
-
-Before Lens opens Settings it awaits pending capture shutdown and video finalization. Recording errors during handoff are retained in the guide rather than shown as focus-stealing alerts. A direct user switch to Settings hides the overlay immediately while shutdown finishes in the background. If macOS requests a restart, use its restart action or quit Lens normally after saving; Lens has no automatic restart loop.
+If administrator-password input is blocked, hide or close Lens before entering the password. Lens yields input before explicitly opening permission settings; directly switching to System Settings hides the overlay while shutdown finishes. Do not paste passwords into Lens or reports. This safety behavior is not evidence that Secure Input caused an earlier stall; real authentication remains a separate verification boundary. Lens does not inspect/disable Secure Input, intercept global keystrokes, or bypass authentication.
 
 ## System Settings shows a generic Lens icon
 
-App artwork, the running app icon, Launch Services lookup, and a cached System Settings row are different verification boundaries. Confirm the selected app path and its built `CFBundleIconFile`/`CFBundleIconName` entries, and verify that `Contents/Resources/AppIcon.icns` contains the intended icon. Do not clear Screen Recording grants to repair artwork.
+Bundle artwork, the running app icon, Launch Services lookup, and a cached Settings row are different boundaries. For a source build, inspect `CFBundleIconFile`/`CFBundleIconName` and `Contents/Resources/AppIcon.icns`; check the exact installed path before diagnosing a stale row. Reopen System Settings if necessary. Do not reset Screen Recording grants or globally delete caches to repair an icon. The historical scoped lookup check and its unverified Settings-row repaint are in [beta.2 validation](releases/beta.2-readiness.md#system-permission-handoff-check--2026-09-15).
 
-On 2026-09-15, the canonical development bundle contained the correct icon while `NSWorkspace.icon(forFile:)` returned a generic icon. Re-registering only that exact app using the system `lsregister -f` refreshed the workspace lookup to the blue translation icon. The System Settings row still required a native visual recheck; reopening System Settings may be necessary. No global Launch Services rebuild, icon-cache deletion, or TCC reset was used.
+## A language is missing or checking
 
-## A language is missing or needs preparation
+Pickers intentionally show installed translation routes, with OCR support also required for sources. Open **시스템 언어 다운로드…** from Help/Settings, then open System Settings → General → Language & Region and navigate to Translation Languages. The button opens the parent pane; it does not itself download anything. Return to the guide, choose **다시 확인**, and close it with **완료** to refresh Lens.
 
-Normal pickers intentionally show only installed translation routes, not every language supported by macOS. In **언어 팩 관리…**, supported but uninstalled models remain visible so you can add them. Its selection does not change the active lens language. If no pair is installed, translation and onboarding completion remain disabled; you can still close the guide with **나중에**.
+Do not look for the old Lens source-list/download sheet. Display/keyboard/voice languages and Apple Intelligence's shared-model support are not proof of individual translation packs. If the system pane differs or is unavailable, include the macOS version in a report rather than changing unrelated language settings.
 
-Open **언어 팩 관리…** for the selected target and inspect the desired source pair. A supported pair can still require installation. Accept Apple's download sheet with internet access, then recheck after preparation or after bringing Lens to the foreground.
+Checking is not missing: an explicit start can wait for a check without opening download guidance. Ordinary Finder activation does not refresh the entire catalog. A failed readiness check can be retried with Start Translation; it must not be interpreted as proof of missing models. Keep using installed routes while downloading others. Offline behavior and interrupted-download recovery require actual runtime verification, not just a ready catalog.
 
-Source choices require both translation support and accurate Vision OCR support; targets do not require OCR. macOS display-language support does not guarantee either. If a download fails, record the sanitized error and retry the selected pair once the connection is restored. Download recovery and offline operation remain manual acceptance items.
+## Text is absent, wrong, stale, or truncated
 
-## Text is absent, wrong, or stale
+Confirm translation is running and a frame has arrived; try larger horizontal synthetic text and different source/target languages. An explicit source filters recognized paragraphs: it does not force ambiguous names, short words, numbers, mixed-language text, or other languages into that selection. Auto Detect can help with a multilingual page, but uncertain text may still remain original.
 
-Confirm a frame has arrived and translation is running. Keep the lens within one display, pause and restart, and try larger horizontal text with an explicit source language. Use different source and target languages.
+Changing text temporarily hides the affected overlay and source mask while preserving unrelated valid translations. The **번역 전문** reader deliberately stays fixed; choose **새 번역 반영** for updates and heed **이전 번역 / 이전 화면의 번역** labels. To read an overlay's truncated translation, turn click-through off and click it, or use Command-Shift-T. This does not recover source text the underlying app never displayed.
 
-Short labels, vertical writing, rapidly changing content, and text outside OCR support may not work well. Use the full-text reader when translations do not fit. Reproduce a suspected stale-result issue by moving, resizing, or changing languages over synthetic content and describe the exact sequence.
+For stale results, report a minimal move/resize/language-change sequence. Multiple-display acceptance remains incomplete; after a display disconnect, move the lens onto an available display and restart translation.
 
-Multiple-display behavior is not formally accepted. If a display disconnects or capture reports it unavailable, move the lens onto an available display and restart.
+## Click-through and resize controls
 
-## Mouse events go through the toolbar
-
-Click-through affects the whole lens window. Turn off **클릭과 스크롤 통과** using the menu-bar item, or Command-K when Lens is active.
+Only the lens body passes clicks, drags, and scrolling through. Toolbar actions and resize edges must remain usable, including unlocking and recording stop. Use the toolbar cursor button, menu-bar item, or Command-K while Lens is active to unlock. If the header also passes input through or a resize panel is left behind, that is not intended behavior: record the build and move/minimize/restore sequence. Panel tests alone do not establish real cross-app input delivery.
 
 ## An image or video cannot be saved
 
-Wait for a captured frame; save controls are disabled before one exists. Check that the selected destination is writable and has available space. Recording ends when the lens moves/resizes, languages change, translation pauses, the Mac sleeps, or Lens quits.
+Wait for a captured frame; save/start-recording controls require one. **저장 폴더 열기** is independent of that requirement and opens the currently configured folder, not the last saved file's parent. Check **설정 → 캡처 → 저장 폴더**, available space, and write access. Reconnect or reselect a missing custom folder; Lens does not silently fall back elsewhere.
 
-Exports now go directly to **설정 → 캡처 → 저장 폴더**, initially `~/Pictures/Lens`. No filename or path dialog is expected. If that folder was deleted, disconnected, or lost permission, reconnect it or choose it again with **폴더 변경…**. Lens does not silently fall back to another location. **최근 저장 → Finder에서 보기** reveals the last completed export from this session.
-
-Wait for the saving indicator to finish. If an error names a recovery file, keep it until you have checked whether it is playable and recovered anything needed. Do not assume it is complete after a crash or power loss. Exported transparent-mode content includes the background by design.
+No filename dialog is expected. Successful PNG writes briefly show a camera checkmark; failures retain error guidance instead. Recording ends on move/resize, language change, pause, minimize, sleep, lens close, or quit. Wait for video finalization. Keep any named recovery file until you have recovered what is playable; a crash/power loss can leave it incomplete. Transparent-mode exports include the background by design. See [saving details](usage.md#save-an-image-or-video).
 
 ## A downloaded app is blocked
 
-Development builds are not a notarized public distribution. Do not disable Gatekeeper or broadly remove quarantine as a workaround. Use the documented local development workflow. Future distribution is planned as a paid Mac App Store one-time purchase, with no subscriptions; implementation and submission are deferred. The earlier external Developer ID notarization workflow remains withdrawn. See [distribution status](distribution.md) and the [release checklist](releasing.md).
+Check the exact asset's [release notes](releases/v0.1.0-beta.5.md) and checksum: development archives marked **DEVELOPMENT-NOT-NOTARIZED** are different from a verified notarized release. A Developer ID signature alone is not Apple notarization. App Store submission is separate and is not required for the GitHub DMG workflow.
+
+Do not disable Gatekeeper, strip quarantine, or reset permissions to pass a check. If the documented notarized asset is blocked, record its filename/checksum, macOS version, and sanitized message. Use the [source-build guide](development.md) if appropriate; release maintainers should follow the [artifact checks](releasing.md#release-gates-and-recovery).
 
 ## Report a problem
 
-Include macOS and app version/build, Mac architecture, source/target languages, permission state, expected and actual behavior, and a minimal reproduction with invented text. State whether the build is local or a packaged candidate. Use the [bug template](../.github/ISSUE_TEMPLATE/bug_report.md); for vulnerabilities, follow [private reporting guidance](../SECURITY.md).
+Include macOS/app version and build, architecture, source/target languages, permission state, local-vs-downloaded origin, expected/actual behavior, and invented-text reproduction. Use the [bug template](../.github/ISSUE_TEMPLATE/bug_report.md); vulnerabilities follow [private reporting guidance](../SECURITY.md).

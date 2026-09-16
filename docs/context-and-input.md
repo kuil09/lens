@@ -4,6 +4,8 @@ Implementation and runtime evidence from local build 8, 2026-09-15, preserving t
 
 ## Translation representations
 
+The representation details below describe build 8. In particular, the reader later gained an independent, manually applied snapshot; do not treat the shared reader/display list described here as the current reading behavior. See [current reader usage](usage.md#read-a-full-translation) and [the scoped implementation evidence](interaction-reading-validation.md).
+
 1. **Live source:** ScreenCaptureKit continues feeding the Metal canvas independently of OCR and translation. Its source rectangle is the body panel, not the header.
 2. **Context/reference:** A `TextBlock` retains physical `SourceLine` strings and normalized Vision coordinates. The translation input joins layout-wrapped lines (spaces for English/Korean, no inserted space for Japanese). It does not split at the observation grid, flatten the screen into one string, or guess target-line alignment. Exact source text and line geometry remain available for result validation/reuse. `referenceLayer` retains completed translations even when locally hidden.
 3. **Visibility:** `TranslationDisplayMask` hides whole block IDs. Both translated glyphs and their source-cover rectangles disappear together; the same filtered display list feeds the overlay, reader, PNG, and MP4. A change anywhere in the output union, including gaps between source lines, hides that block. Unrelated valid blocks remain visible. Late replies are checked against their source revisions and current context.

@@ -1,8 +1,8 @@
 # UI localization
 
-The current beta.3 release includes English, Korean, and Japanese UI. UI localization is separate from downloadable translation packs and the source/target selection. The UI follows the app bundle's preferred localization, including macOS per-app language settings, with English as the development fallback. Restart after changing the macOS app-language setting.
+The source includes English, Korean, and Japanese UI. UI localization is separate from downloadable translation packs and the source/target selection. The UI follows the app bundle's preferred localization, including macOS per-app language settings, with English as the development fallback. Restart after changing the macOS app-language setting.
 
-See [development](development.md) for build/test commands and [beta.2 readiness](releases/beta.2-readiness.md) for overall candidate evidence. The [planned Mac App Store distribution](distribution.md) does not imply localized store listings or completed store implementation.
+See [Development](development.md) for build/test commands and each [release record](releases/v0.1.0-beta.5.md) for candidate evidence. The dated localization observations below belong to the earlier [beta.2 review](releases/beta.2-readiness.md); they do not certify later builds or localized store listings.
 
 ## Implementation
 

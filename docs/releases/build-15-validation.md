@@ -26,10 +26,7 @@ Build 12 was published; builds 13/14 were local previews. Build 15 retains
 
 ## Distribution gates
 
-At preflight, `release-signing` still lacks `LENS_APPLE_ID` and
-`LENS_APPLE_APP_PASSWORD`. Existing local `Lens-notary` authentication was
-successfully checked. The authorized local fallback will be used; ordinary
-GitHub development CI is not CI notarization.
+At the original publication preflight, `release-signing` lacked the two Apple authentication inputs. Existing local Keychain authentication was successfully checked, and that authorized local fallback was used. This is a historical preflight result, not the current environment configuration; see the dated CI follow-up below. Ordinary development CI was not CI notarization.
 
 - Application source: `1f5df5e44bb33a2aa438b52d3dbdd03762aedfc4`.
 - [GitHub CI](https://github.com/kuil09/lens/actions/runs/35042310848) passed
@@ -58,3 +55,14 @@ administrator authentication, multiple displays, sustained use, and controlled
 translation-quality evaluation are not established by automated tests. No
 permission reset, quarantine removal, or security bypass is permitted. A beta
 publication does not imply that these gaps are closed.
+
+## CI follow-up — 2026-09-16
+
+This section records CI verification after the local build-15 publication. It does not change that public artifact's provenance or claim a replacement was published.
+
+- The owner registered the Apple authentication Secrets. The existing four required environment Secret names and team variable were verified without revealing their values. Reviewer protection and the main-only deployment restriction were preserved.
+- [Run 35045717231](https://github.com/kuil09/lens/actions/runs/35045717231), source `9a8a5caed05bbaa1f817ced3ec572c225b1790e5`, was approved and passed preflight, checks/tests, certificate/private-key import, Developer ID signing, real Apple authentication and app upload.
+- App submission `41a36ff7-547d-4df6-80e8-e52da07a4450` was **Invalid**. Apple's existing-submission log identified `com.apple.security.get-task-allow` on the arm64 executable. No DMG was submitted and no CI deliverable was uploaded; cleanup ran. Authentication success did not establish notarization success.
+- CI had omitted the base-entitlement injection override used by local signing. Commit `17d4ec7150210766cc718182c90939331766eae7` adds `CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO` plus signed-binary entitlement validation before submission. Local checks passed: 49 index assertions, 49 shell assertions, 4 installer tests and 13 notarization/preflight tests. These tests are not another Apple acceptance.
+- [Corrected run 35046508807](https://github.com/kuil09/lens/actions/runs/35046508807) was **waiting for release-signing review** at the September 16 documentation check. Check that run for later changes; this snapshot is not a live status feed. This documentation pass did not dispatch, approve or retry it.
+- The existing public build-15 DMG/sidecar names and digest still matched the local-notarization record above. No release, tag, DMG, installed app, user setting or Secret was changed by the documentation pass.
