@@ -1,0 +1,61 @@
+name: Lens CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lens-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-test-build:
+    runs-on: macos-26
+    timeout-minutes: 25
+    env:
+      # Available in the official macos-26 runner manifest; never use its moving default.
+      # https://github.com/actions/runner-images/blob/main/images/macos/macos-26-Readme.md
+      DEVELOPER_DIR: /Applications/Xcode_26.4.1.app/Contents/Developer
+      LENS_TEST_INSTALLED_LANGUAGES: '0'
+    steps:
+      - name: Validate selected Xcode before checkout or compilation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$DEVELOPER_DIR"
+          version=$(xcodebuild -version | awk '/^Xcode / {print $2}')
+          test "$version" = 26.4.1
+          xcrun --sdk macosx --show-sdk-version
+          xcrun swift --version
+      # Pin the action revision; Dependabot proposes updates separately.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Repository and shell regressions
+        run: make check
+      - name: Serial unit tests (installed language tests disabled)
+        timeout-minutes: 10
+        run: python3 -u scripts/ci-tests.py
+      - name: Ad-hoc Release build
+        run: make build
+      - name: Install DMG packaging dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/lens-packaging"
+          "$RUNNER_TEMP/lens-packaging/bin/pip" install -r Packaging/requirements.txt
+      - name: Build Development DMG
+        run: |
+          PATH="$RUNNER_TEMP/lens-packaging/bin:$PATH" make package ARGS='--development --format dmg'
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: Lens-development-${{ github.sha }}
+          path: |
+            dist/*-DEVELOPMENT-NOT-NOTARIZED.dmg
+            dist/*-DEVELOPMENT-NOT-NOTARIZED.dmg.sha256
+          if-no-files-found: error
+          retention-days: 7

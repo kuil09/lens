@@ -1,0 +1,82 @@
+name: Lens Notarized DMG
+
+# Signing is opt-in, never a pull_request or pull_request_target operation.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: lens-notarization
+  cancel-in-progress: false
+
+jobs:
+  verify-ci:
+    if: github.repository == 'kuil09/lens' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Require successful main CI for the exact source commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/ci-success-gate.py
+  notarized-dmg:
+    needs: verify-ci
+    if: github.repository == 'kuil09/lens' && github.ref == 'refs/heads/main'
+    runs-on: macos-26
+    environment: release-signing
+    timeout-minutes: 60
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.4.1.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Recheck exact-commit CI after environment approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/ci-success-gate.py
+      - name: Validate tools
+        run: |
+          test "$(xcodebuild -version | awk '/^Xcode / {print $2}')" = 26.4.1
+          test "$(uname -m)" = arm64
+      - name: Check signing configuration without exposing values
+        env:
+          LENS_CERTIFICATE_P12_BASE64: ${{ secrets.LENS_CERTIFICATE_P12_BASE64 }}
+          LENS_CERTIFICATE_PASSWORD: ${{ secrets.LENS_CERTIFICATE_PASSWORD }}
+          LENS_APPLE_ID: ${{ secrets.LENS_APPLE_ID }}
+          LENS_APPLE_APP_PASSWORD: ${{ secrets.LENS_APPLE_APP_PASSWORD }}
+          LENS_TEAM_ID: ${{ vars.LENS_TEAM_ID }}
+        run: bash scripts/ci-notarize.sh preflight
+      - name: Install packaging-only dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/lens-packaging"
+          "$RUNNER_TEMP/lens-packaging/bin/pip" install -r Packaging/requirements.txt
+      - name: Build, sign, notarize and verify app and DMG
+        env:
+          LENS_CERTIFICATE_P12_BASE64: ${{ secrets.LENS_CERTIFICATE_P12_BASE64 }}
+          LENS_CERTIFICATE_PASSWORD: ${{ secrets.LENS_CERTIFICATE_PASSWORD }}
+          LENS_APPLE_ID: ${{ secrets.LENS_APPLE_ID }}
+          LENS_APPLE_APP_PASSWORD: ${{ secrets.LENS_APPLE_APP_PASSWORD }}
+          LENS_TEAM_ID: ${{ vars.LENS_TEAM_ID }}
+        run: PATH="$RUNNER_TEMP/lens-packaging/bin:$PATH" bash scripts/ci-notarize.sh build
+      - name: Upload verified notarized deliverables only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: Lens-notarized-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/lens-notarized-output/*.dmg
+            ${{ runner.temp }}/lens-notarized-output/*.sha256
+            ${{ runner.temp }}/lens-notarized-output/provenance.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove ephemeral signing material on failure or cancellation
+        if: always()
+        run: bash scripts/ci-notarize.sh cleanup

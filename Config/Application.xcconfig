@@ -1,0 +1,22 @@
+#include "Version.xcconfig"
+
+PRODUCT_NAME = Lens
+GENERATE_INFOPLIST_FILE = YES
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
+INFOPLIST_FILE = Config/Info.plist
+INFOPLIST_KEY_CFBundleDisplayName = Lens
+INFOPLIST_KEY_LSApplicationCategoryType = public.app-category.productivity
+INFOPLIST_KEY_NSHumanReadableCopyright = Copyright © 2026 kuil09. MIT License.
+MACOSX_DEPLOYMENT_TARGET = 26.4
+ARCHS = arm64
+SWIFT_VERSION = 6.0
+ENABLE_HARDENED_RUNTIME = YES
+ALWAYS_SEARCH_USER_PATHS = NO
+
+// Keep the existing local app identity. Distribution overrides are explicit.
+PRODUCT_BUNDLE_IDENTIFIER = dev.local.lens
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = -
+
+// Optional machine-local identity. Never fall back to ad-hoc if it cannot sign.
+#include? "LocalSigning.xcconfig"
