@@ -283,3 +283,12 @@
 "Recording — stop recording to move or resize Barolens." = "녹화 중 — 바로렌즈를 이동하거나 크기를 조절하려면 녹화를 중지하세요.";
 
 "Barolens" = "바로렌즈";
+
+// Short-label OCR diagnostics.
+"No text detected. Try a clearer region or larger text." = "텍스트를 인식하지 못했습니다. 더 선명한 영역이나 큰 글자로 시도하세요.";
+"Waiting for text to stop changing…" = "텍스트가 안정되기를 기다리는 중…";
+"Read %1$@ areas; %2$@ have an uncertain language. Select the source language for short labels." = "%1$@개 영역을 읽었지만 %2$@개의 언어가 불확실합니다. 짧은 단어는 원문 언어를 선택하세요.";
+"Read %1$@ areas; OCR confidence is too low for %2$@." = "%1$@개 영역을 읽었지만 %2$@개의 문자 인식 신뢰도가 낮습니다.";
+"Read text does not match the selected source language." = "읽은 텍스트가 선택한 원문 언어와 다릅니다.";
+"Read text is already in the target language." = "읽은 텍스트가 이미 번역 대상 언어입니다.";
+"Translated areas: %1$@ · %2$@ areas need a source language" = "%1$@개 영역 번역됨 · %2$@개 영역은 원문 언어 선택 필요";

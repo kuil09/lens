@@ -283,3 +283,12 @@
 "Recording — stop recording to move or resize Barolens." = "Recording — stop recording to move or resize Barolens.";
 
 "Barolens" = "Barolens";
+
+// Short-label OCR diagnostics.
+"No text detected. Try a clearer region or larger text." = "No text detected. Try a clearer region or larger text.";
+"Waiting for text to stop changing…" = "Waiting for text to stop changing…";
+"Read %1$@ areas; %2$@ have an uncertain language. Select the source language for short labels." = "Read %1$@ areas; %2$@ have an uncertain language. Select the source language for short labels.";
+"Read %1$@ areas; OCR confidence is too low for %2$@." = "Read %1$@ areas; OCR confidence is too low for %2$@.";
+"Read text does not match the selected source language." = "Read text does not match the selected source language.";
+"Read text is already in the target language." = "Read text is already in the target language.";
+"Translated areas: %1$@ · %2$@ areas need a source language" = "Translated areas: %1$@ · %2$@ areas need a source language";

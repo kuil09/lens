@@ -24,7 +24,7 @@ actor OCRService {
             guard let candidate = observation.topCandidates(1).first,
                   !candidate.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
             return TextBlock(text: candidate.string, bounds: observation.boundingBox,
-                             language: Self.detectLanguage(candidate.string, source: source, languages: languages), confidence: candidate.confidence)
+                             language: Self.detectLanguage(candidate.string, languages: languages), confidence: candidate.confidence)
         }
         // Establish layout context before language classification: a wrapped tail
         // such as "it." cannot reliably identify its language independently.
@@ -57,23 +57,57 @@ actor OCRService {
         guard !(hasHangul && hasKana) else { return nil }
         // A stray native character is not evidence that a foreign sentence is Korean/Japanese.
         let native = letters.filter { isHangul($0.value) || isKana($0.value) || isHan($0.value) }.count
+        // A UI label containing incompatible scripts is not evidence for a single language.
+        guard native == 0 || native == letters.count else { return nil }
         if hasHangul || hasKana {
             guard native * 2 >= letters.count else { return nil }
             let expected = hasHangul ? "ko" : "ja"
             if letters.count >= 8, let best, best.value >= 0.85, best.key.rawValue != expected { return nil }
             return accepted(expected)
         }
-        // Single short labels are ambiguous across languages. Scripts without spaces
-        // can still identify longer lines; nearby Han-only labels retain the context rule below.
-        guard letters.count >= 8, let best, best.value >= 0.85 else { return nil }
-        if letters.allSatisfy({ $0.value < 0x0250 }), text.split(whereSeparator: \.isWhitespace).count < 3 { return nil }
-        return accepted(best.key.rawValue)
+        let latin = matchesScript(letters, "Latin")
+        let shortLabel = text.split(whereSeparator: \.isWhitespace).count <= 2
+        let runnerUp = hypotheses.filter { $0.key != best?.key }.map(\.value).max() ?? 0
+        let decisive = best.map { $0.value >= 0.85 && $0.value - runnerUp >= 0.5 } ?? false
+        // Keep full-sentence detection independent of the user's preference. Short Latin
+        // labels may stand alone only with strong, well-separated language evidence.
+        if let best, best.value >= 0.85,
+           (letters.count >= 8 && (!latin || !shortLabel) || latin && letters.count >= 2 && decisive),
+           let detected = accepted(best.key.rawValue), compatible(letters, with: detected) != false {
+            return detected
+        }
+        guard let source, shortLabel, compatible(letters, with: source) == true,
+              letters.count >= 2 || letters.allSatisfy({ isHan($0.value) }) ||
+                source.languageCode == "en" && ["a", "i"].contains(text.lowercased()),
+              let preferred = accepted(source.rawValue) else { return nil }
+        // Shared scripts are ambiguous; an explicit source is useful, but a clearly
+        // different Latin language is counterevidence (for example Oui under English).
+        if latin, let best, best.value >= 0.55, best.value - runnerUp >= 0.25,
+           let alternative = BarolensLanguage(rawValue: best.key.rawValue),
+           !alternative.isSameLanguage(as: source) { return nil }
+        return preferred
     }
 
-    /// Only ambiguous Han labels inherit Japanese context; digits and short Latin labels stay unknown.
-    /// Context must come from directly detected, nearby lines in the same column, without propagation.
+    private nonisolated static func matchesScript(_ letters: String.UnicodeScalarView, _ script: String) -> Bool {
+        String(letters).range(of: "^\\p{\(script)}+$", options: .regularExpression) != nil
+    }
+
+    private nonisolated static func compatible(_ letters: String.UnicodeScalarView, with language: BarolensLanguage) -> Bool? {
+        switch language.locale.script?.identifier {
+        case "Jpan": return letters.allSatisfy { isHan($0.value) || isKana($0.value) }
+        case "Kore": return letters.allSatisfy { isHangul($0.value) || isHan($0.value) }
+        case "Hans", "Hant": return letters.allSatisfy { isHan($0.value) }
+        default:
+            let scripts = ["Latn": "Latin", "Cyrl": "Cyrillic", "Grek": "Greek", "Arab": "Arabic",
+                           "Hebr": "Hebrew", "Deva": "Devanagari", "Thai": "Thai"]
+            guard let identifier = language.locale.script?.identifier, let script = scripts[identifier] else { return nil }
+            return matchesScript(letters, script)
+        }
+    }
+
+    /// Context comes only from directly detected, nearby lines in the same column, without propagation.
     nonisolated static func assignLanguages(to lines: [TextBlock], source: BarolensLanguage? = nil, languages: [BarolensLanguage]? = nil) -> [TextBlock] {
-        let detected = lines.map { detectLanguage($0.translationText, source: source, languages: languages) }
+        let detected = lines.map { detectLanguage($0.translationText, languages: languages) }
         return lines.enumerated().map { index, line in
             var language = detected[index]
             let letters = line.text.unicodeScalars.filter { CharacterSet.letters.contains($0) }
@@ -87,6 +121,23 @@ actor OCRService {
                 if !nearby.isEmpty && nearby.allSatisfy({ detected[$0] == .japanese }) {
                     language = .japanese
                 }
+            }
+            if language == nil, letters.count >= 2, matchesScript(letters, "Latin"),
+               line.text.split(whereSeparator: \.isWhitespace).count <= 2 {
+                // Unknown labels are not anchors. Inferred labels never enter `detected`,
+                // so a nearby sentence cannot spread through a chain of UI controls.
+                let nearby = lines.indices.filter { other in
+                    other != index && detected[other] != nil && sameColumn(line.bounds, lines[other].bounds)
+                        && verticalGap(line.bounds, lines[other].bounds) <= max(line.bounds.height, lines[other].bounds.height) * 2
+                }
+                if let first = nearby.first, let neighbor = detected[first],
+                   nearby.allSatisfy({ detected[$0]?.isSameLanguage(as: neighbor) == true }),
+                   detectLanguage(line.translationText, source: neighbor, languages: languages)?.isSameLanguage(as: neighbor) == true {
+                    language = neighbor
+                }
+            }
+            if language == nil, let source {
+                language = detectLanguage(line.translationText, source: source, languages: languages)
             }
             return TextBlock(id: line.id, text: line.text, bounds: line.bounds,
                              language: language, confidence: line.confidence, sourceLines: line.sourceLines)

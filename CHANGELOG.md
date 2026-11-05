@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.0-beta.10 — build 20
+
+- Translate short UI labels using the selected source language when their script is compatible and there is no strong contrary language evidence. Include short Han-only Japanese labels without requiring neighboring prose.
+- Allow confident short-label language detection and direct nearby context in Auto Detect, without joining independent labels or propagating inferred languages. Ambiguous labels may still require an explicit source.
+- Distinguish absent OCR text, uncertain languages, low OCR confidence, mismatched sources and text already in the target language. Retain only counts in diagnostics and show unresolved-language counts alongside completed translations.
+- Add synthetic dense-label OCR-to-translation regression coverage and mixed-script, single-character and short-label language-policy checks.
+
 ## 0.1.0-beta.9 — build 19
 
 - Rename the app to 바로렌즈 (Barolens) and the repository to `kuil09/barolens` across source, app identity, build metadata and packaging. Existing preferences migrate once to the new identity.

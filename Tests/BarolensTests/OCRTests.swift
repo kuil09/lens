@@ -42,7 +42,8 @@ private func line(_ text: String, x: CGFloat = 0.1, y: CGFloat = 0.8,
     let result = OCRService.assignLanguages(to: lines)
     #expect(result.map(\.language) == [.japanese, .japanese, nil, nil, nil])
     #expect(result[1].id == lines[1].id)
-    #expect(OCRService.assignLanguages(to: lines, source: .korean).map(\.language) == result.map(\.language))
+    // Direct Japanese context wins; isolated Han labels can use the explicitly chosen Korean source.
+    #expect(OCRService.assignLanguages(to: lines, source: .korean).map(\.language) == [.japanese, .japanese, .korean, nil, .korean])
     let conflicting = [lines[0], lines[1], line("한국어 설명입니다", y: 0.70)]
     #expect(OCRService.assignLanguages(to: conflicting)[1].language == nil)
     let unknownNeighbor = [lines[0], lines[1], line("Oui", y: 0.70)]

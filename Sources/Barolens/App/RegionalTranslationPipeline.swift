@@ -23,6 +23,7 @@ import Combine
         var observedAt: Double
     }
     struct Diagnostics {
+        var selection = TextSelection()
         var ocrRequests = 0
         var translationBatches = 0
         var discardedResults = 0
@@ -36,6 +37,40 @@ import Combine
         var translationQueueWait = 0.0
         var ocrProcessingTime = 0.0
         var translationProcessingTime = 0.0
+    }
+    /// Counts only; never retain source text in diagnostics.
+    struct TextSelection: Equatable {
+        var recognized = 0
+        var eligible = 0
+        var uncertainLanguage = 0
+        var lowConfidence = 0
+        var otherSource = 0
+        var alreadyTarget = 0
+
+        init(_ blocks: [TextBlock] = [], context: Context? = nil) {
+            guard let context else { return }
+            recognized = blocks.count
+            for block in blocks {
+                if !(block.confidence >= 0.3) { lowConfidence += 1 }
+                else if block.language == nil { uncertainLanguage += 1 }
+                else if block.language!.isSameLanguage(as: context.target) { alreadyTarget += 1 }
+                else if let source = context.source, !block.language!.isSameLanguage(as: source) { otherSource += 1 }
+                else { eligible += 1 }
+            }
+        }
+        var emptyStatus: String {
+            if recognized == 0 { return L10n.text("No text detected. Try a clearer region or larger text.") }
+            if eligible > 0 { return L10n.text("Waiting for text to stop changing…") }
+            if uncertainLanguage > 0 {
+                return L10n.text("Read %1$@ areas; %2$@ have an uncertain language. Select the source language for short labels.",
+                    String(recognized), String(uncertainLanguage))
+            }
+            if lowConfidence > 0 {
+                return L10n.text("Read %1$@ areas; OCR confidence is too low for %2$@.", String(recognized), String(lowConfidence))
+            }
+            if otherSource > 0 { return L10n.text("Read text does not match the selected source language.") }
+            return L10n.text("Read text is already in the target language.")
+        }
     }
     private let analysis: FrameAnalysis
     private let translator: any TranslationEngine
@@ -107,6 +142,7 @@ import Combine
         recordingPending = []; frameStamp = nil
         cancelWake(); retryNotBefore = -.infinity
         scheduler.reset(); context = nil; latest = nil; records = []
+        diagnostics.selection = TextSelection()
         diagnostics.retainedFrames = 0
         ocrTask?.cancel(); translationTask?.cancel(); translator.cancel()
         publish()
@@ -276,6 +312,7 @@ import Combine
                 startWorkers()
             }
             guard scheduler.epoch == epoch, self.context == context, !Task.isCancelled else { return true }
+            diagnostics.selection = TextSelection(blocks, context: context)
             // Full-frame context avoids slicing a paragraph at a scheduling-grid boundary.
             let observed = blocks.filter { !scheduler.cells(intersecting: $0.bounds).isDisjoint(with: selected) }
             let previous = records
@@ -308,7 +345,7 @@ import Combine
             }
             scheduler.checked(selected, submitted: generation, at: now())
             publish()
-            if records.isEmpty { onStatus?(L10n.text("No text to translate.")) }
+            if records.isEmpty { onStatus?(diagnostics.selection.emptyStatus) }
             startWorkers()
         } catch {
             if scheduler.epoch == epoch, !Task.isCancelled {
@@ -390,7 +427,11 @@ import Combine
                 onLatency?(now() - record.observedAt)
             }
             publish()
-            onStatus?(L10n.text("Translated areas: %1$@ · On device", String(describing: display.count)))
+            if diagnostics.selection.uncertainLanguage > 0 {
+                onStatus?(L10n.text("Translated areas: %1$@ · %2$@ areas need a source language", String(display.count), String(diagnostics.selection.uncertainLanguage)))
+            } else {
+                onStatus?(L10n.text("Translated areas: %1$@ · On device", String(describing: display.count)))
+            }
         } catch {
             if epoch == scheduler.epoch, !Task.isCancelled {
                 // Missing packs need user action, not a background polling loop.

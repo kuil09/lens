@@ -283,3 +283,12 @@
 "Recording — stop recording to move or resize Barolens." = "録画中 — オーバーレイを移動・サイズ変更するには録画を停止してください。";
 
 "Barolens" = "Barolens";
+
+// Short-label OCR diagnostics.
+"No text detected. Try a clearer region or larger text." = "文字を認識できません。鮮明な範囲や大きな文字で試してください。";
+"Waiting for text to stop changing…" = "文字が安定するのを待っています…";
+"Read %1$@ areas; %2$@ have an uncertain language. Select the source language for short labels." = "%1$@個の領域を認識しましたが、%2$@個の言語が不明です。短いラベルは原文の言語を選択してください。";
+"Read %1$@ areas; OCR confidence is too low for %2$@." = "%1$@個の領域を認識しましたが、%2$@個の文字認識の信頼度が低いです。";
+"Read text does not match the selected source language." = "認識した文字は選択した原文の言語と異なります。";
+"Read text is already in the target language." = "認識した文字はすでに翻訳先の言語です。";
+"Translated areas: %1$@ · %2$@ areas need a source language" = "%1$@個の領域を翻訳済み · %2$@個は原文の言語選択が必要";
